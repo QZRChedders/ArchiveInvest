@@ -1,0 +1,13 @@
+phrase,n_glyphs,glyph_ids,n_broadcasts,broadcasts,role
+A,20,"82, 83, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103",2,"E6C3-18, E6C4-V",Track 3 (sparse) — E6C3-18 / E6C4-V payload
+B,14,"9, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26",6,"E6C2-11, E6C2-1N, E6C2-N, E6C3-1L, E6C3-2, E6C3-9",Main track (6 broadcasts) — fixed segment
+C,12,"54, 55, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66",2,"E6C2-1K, E6C4-35",Side track (2 broadcasts) — opener/tail segment
+D,11,"37, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50",12,"E6C2-1K, E6C4-13, E6C4-16, E6C4-17, E6C4-18, E6C4-19, E6C4-1G, E6C4-1H, E6C4-2T, E6C4-30, E6C4-35, E6C5-N",Side track core (12 broadcasts) — most-replayed payload
+E,10,"3, 4, 5, 6, 7, 8, 10, 11, 12, 13",5,"E6C2-11, E6C2-1N, E6C2-N, E6C3-2, E6C3-9",Main track (5 broadcasts) — fixed segment
+F,3,"121, 122, 123",7,"E6C4-13, E6C4-16, E6C4-18, E6C4-1G, E6C4-1H, E6C4-2T, E6C4-30",Side track (7 broadcasts) — opener/tail segment
+G,2,"38, 39",10,"E6C2-1K, E6C4-16, E6C4-18, E6C4-19, E6C4-1G, E6C4-1H, E6C4-2T, E6C4-30, E6C4-35, E6C5-N",Side track core (10 broadcasts) — most-replayed payload
+H,2,"1, 2",6,"E6C2-11, E6C2-1N, E6C2-N, E6C3-2, E6C3-9, E6C4-35",Bridge between main and side tracks (6 broadcasts)
+I,2,"118, 119",5,"E6C4-13, E6C4-16, E6C4-1G, E6C4-2T, E6C4-30",Side track (5 broadcasts) — opener/tail segment
+J,2,"28, 30",4,"E6C2-11, E6C2-N, E6C3-1L, E6C3-9",Main track (4 broadcasts) — fixed segment
+K,2,"67, 68",4,"E6C2-1N, E6C3-2, E6C3-9, E6C4-35",Bridge between main and side tracks (4 broadcasts)
+L,2,"31, 32",3,"E6C2-N, E6C3-1L, E6C3-9",Main track (3 broadcasts) — fixed segment

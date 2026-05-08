@@ -1,0 +1,1776 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Grid Pattern Tagger</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 14px; background: #1a1a1a; color: #ddd; }
+  .wrap { max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 18px; margin: 0 0 10px 0; }
+  .panel { background: #262626; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
+  .panel-title { font-weight: 600; color: #4cf; font-size: 13px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.4px; }
+  button { background: #444; color: #fff; border: 1px solid #666; padding: 5px 11px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  button:hover:not(:disabled) { background: #555; }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button.primary { background: #2a6; border-color: #3b7; }
+  button.primary:hover:not(:disabled) { background: #3b7; }
+  button.danger { background: #a33; border-color: #c44; }
+  button.warn { background: #c70; border-color: #d80; }
+  input[type=number], input[type=text] { background: #111; color: #eee; border: 1px solid #555; padding: 4px 7px; border-radius: 3px; font-size: 13px; font-family: inherit; }
+  input[type=number] { width: 64px; }
+  input[type=range] { width: 160px; }
+  label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 4px 0; }
+  .row.tight { gap: 6px; }
+  .layout { display: grid; grid-template-columns: 1fr 360px; gap: 14px; align-items: start; }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+  .stage-wrap { background: #111; border-radius: 6px; padding: 8px; }
+  .stage { position: relative; display: inline-block; background: #000; max-width: 100%; }
+  .stage video { display: block; max-width: 100%; }
+  .overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
+  .overlay.interactive { pointer-events: auto; cursor: crosshair; }
+  .scrubber-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .scrubber-row input[type=range] { flex: 1; }
+  .time { font-family: monospace; font-size: 12px; color: #aaa; min-width: 110px; text-align: right; }
+  .info { font-size: 11px; color: #888; margin-top: 4px; line-height: 1.5; }
+  .info code { background: #111; color: #4cf; padding: 1px 4px; border-radius: 3px; }
+  .kbd { display: inline-block; background: #333; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 10px; border: 1px solid #555; vertical-align: 1px; }
+  .pattern-list { background: #1a1a1a; border: 1px solid #333; border-radius: 4px; padding: 6px; max-height: 320px; overflow-y: auto; font-size: 12px; }
+  .pattern-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; margin: 2px 0; background: #262626; border-radius: 3px; cursor: pointer; }
+  .pattern-row:hover { background: #2e2e2e; }
+  .pattern-row.current { background: #1a4a30; outline: 1px solid #2a6; }
+  .pattern-row .num { font-family: monospace; color: #4cf; min-width: 22px; }
+  .pattern-row .ts { font-family: monospace; color: #aaa; font-size: 11px; min-width: 60px; }
+  .pattern-row .cells { color: #ccc; font-size: 11px; flex: 1; word-break: break-all; }
+  .pattern-row .del { color: #a55; padding: 0 4px; }
+  .pattern-row .del:hover { color: #f88; }
+  .pattern-row .badge { font-family: monospace; font-size: 10px; padding: 1px 5px; border-radius: 3px; background: #333; color: #ccc; }
+  .pattern-row .badge.new { background: #1a4a30; color: #6f6; border: 1px solid #2a6; }
+  .pattern-row .badge.near { background: #4a3a1a; color: #fc6; border: 1px solid #c70; cursor: pointer; }
+  .pattern-row .badge.near:hover { background: #5a4a2a; color: #fd8; }
+  .csv-out { width: 100%; height: 200px; background: #111; color: #4cf; font-family: monospace; font-size: 11px; padding: 8px; border: 1px solid #444; border-radius: 4px; resize: vertical; white-space: pre; }
+  .file-drop { border: 2px dashed #555; border-radius: 6px; padding: 24px; text-align: center; color: #888; cursor: pointer; }
+  .file-drop:hover, .file-drop.over { border-color: #4cf; color: #4cf; background: #1a2a3a; }
+  .help { font-size: 11px; color: #888; line-height: 1.5; }
+  .help kbd { background: #333; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 10px; border: 1px solid #555; }
+  .stat { font-size: 11px; color: #aaa; }
+  .stat strong { color: #fff; }
+  details summary { cursor: pointer; user-select: none; padding: 4px 0; color: #4cf; font-size: 12px; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: 11px; background: #333; color: #ccc; }
+  .pill.ok { background: #1a4a30; color: #6f6; }
+  .pill.warn { background: #4a3a1a; color: #fc6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Grid Pattern Tagger</h1>
+
+<div class="panel" id="folderPanel">
+  <div class="panel-title">Project folder · read · save · glyph dictionary</div>
+  <div class="row">
+    <button id="openFolderBtn" class="primary">Open project folder…</button>
+    <span class="stat" id="folderStat">Not connected. Pick the folder containing your videos and pattern CSVs.</span>
+  </div>
+  <div class="row">
+    <span class="pill" id="dictPill">Dictionary: —</span>
+    <span class="stat" id="loadedFileStat"></span>
+  </div>
+  <div id="folderListWrap" style="display:none; margin-top:8px">
+    <div class="panel-title" style="font-size:11px; margin-bottom:4px">Previous scans (click to load)</div>
+    <div class="pattern-list" id="folderList" style="max-height:160px"></div>
+  </div>
+  <div class="info">
+    Once connected, <strong>Save to folder</strong> writes <code>&lt;video&gt;_patterns.csv</code> back here
+    and appends any newly-seen glyphs to <code>PatternCSVs/glyph_dictionary.csv</code>.
+    Saved patterns are flagged in the list as <span class="badge" style="background:#333;color:#ccc;padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace">#42</span> (known glyph),
+    <span class="badge new" style="background:#1a4a30;color:#6f6;padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace;border:1px solid #2a6">new</span> (unseen),
+    or <span class="badge near" style="background:#4a3a1a;color:#fc6;padding:1px 5px;border-radius:3px;font-size:10px;font-family:monospace;border:1px solid #c70">≈#42 (1 off)</span> (within 2 cells of a known glyph — click the badge to snap to it).
+    Permission persists for the browser session — you'll be prompted once per session.
+    Requires Chrome or Edge. If your browser blocks the picker on <code>file://</code>, run
+    <code>python -m http.server</code> in this folder and open <code>http://localhost:8000/grid_tagger.html</code>.
+  </div>
+</div>
+
+<div class="panel" id="loadPanel">
+  <div class="panel-title">1 · Load video</div>
+  <div class="file-drop" id="fileDrop">
+    <div>Drop a video here, or <button id="browseBtn" type="button">browse</button></div>
+    <input type="file" id="fileInput" accept="video/*" style="display:none">
+    <div class="help" style="margin-top:8px">Files stay in your browser — nothing is uploaded.</div>
+  </div>
+</div>
+
+<div class="layout" id="mainLayout" style="display:none">
+  <div>
+    <div class="panel" style="padding-bottom: 4px">
+      <div class="panel-title">2 · Position the 9×9 grid over the cells</div>
+      <div class="stage-wrap">
+        <div class="stage" id="stage">
+          <video id="video" muted playsinline></video>
+          <canvas class="overlay" id="avgCanvas" style="display: none;"></canvas>
+          <canvas class="overlay" id="overlay"></canvas>
+          <canvas class="overlay interactive" id="clickLayer"></canvas>
+        </div>
+      </div>
+      <div class="scrubber-row">
+        <button id="playBtn">▶</button>
+        <input type="range" id="scrubber" min="0" max="1000" value="0">
+        <span class="time" id="timeDisp">0.000 / 0.000  f0/0</span>
+      </div>
+      <div class="row tight" style="margin-top:6px">
+        <label>Speed
+          <select id="speed">
+            <option value="0.1">0.1×</option>
+            <option value="0.25">0.25×</option>
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+        </label>
+        <button id="prevFrameBtn">◀ frame</button>
+        <button id="nextFrameBtn">frame ▶</button>
+        <span class="info">
+          <span class="kbd">space</span> play/pause &middot;
+          <span class="kbd">,</span>/<span class="kbd">.</span> step frame &middot;
+          <span class="kbd">g</span> toggle grid edit
+        </span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Grid setup</div>
+      <div class="row">
+        <label>Grid size <input type="number" id="gridN" value="9" min="2" max="20"></label>
+        <button id="editGridBtn">Edit grid</button>
+        <button id="autoFitBtn" title="Find the bright central diamond and fit the grid to it">Auto-fit (diamond)</button>
+        <button id="fitTwoCellsBtn" title="Click the center cell, then the top-left cell, to align the grid">Fit by 2 cells</button>
+        <span class="stat" id="gridStat"></span>
+      </div>
+      <div class="info" id="fitHelp" style="display:none; color:#fc6">
+        <strong id="fitInstruction">Click the center cell of the 9×9 grid…</strong>
+        <button id="fitCancelBtn" style="margin-left:8px">Cancel</button>
+      </div>
+      <div class="row tight">
+        <label>Scale <input type="range" id="gridScale" min="0.2" max="1.5" step="0.01" value="1"></label>
+        <span class="stat" id="gridScaleVal">1.00×</span>
+        <button id="gridScaleReset" title="Reset scale to 1">⟲</button>
+        <span class="info">Scales grid around its center — useful when patterns are smaller than full size.</span>
+      </div>
+      <div class="info" id="gridHelp" style="display:none">
+        <strong>Drag the corner handles</strong> to align the grid with the cells.
+        The four red dots are the grid corners (top-left, top-right, bottom-right, bottom-left).
+        The grid fills the quadrilateral they define.
+        Press <span class="kbd">g</span> again or click "Done" when aligned.
+      </div>
+      <div class="row" id="gridDoneRow" style="display:none">
+        <button id="gridDoneBtn" class="primary">Done</button>
+        <button id="gridResetBtn">Reset grid</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Frame averaging</div>
+      <div class="row">
+        <label><input type="checkbox" id="avgEnable"> Overlay last 5 frames</label>
+        <label>Lookback <input type="number" id="avgCount" min="1" max="20" value="5" style="width:50px"></label>
+        <label>Mode
+          <select id="avgMode">
+            <option value="mean">Mean (clearer signal)</option>
+            <option value="min" selected>Darkest (max-contrast for cells)</option>
+            <option value="max">Brightest</option>
+          </select>
+        </label>
+        <button id="avgRefresh">Refresh</button>
+      </div>
+      <div class="info">
+        Captures the previous N frames around the current time and composites them.
+        Useful when the pattern is fading in or hard to read on a single frame.
+        Pause the video first, then enable.
+      </div>
+      <div class="stat" id="avgStat"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-title">3 · Tag this frame</div>
+      <div class="info" style="margin-bottom:8px">
+        Click cells in the video to toggle them as <strong style="color:#2ecc71">darkened</strong>.
+        Save when satisfied.
+      </div>
+      <div class="row">
+        <button id="clearMarksBtn">Clear marks</button>
+        <button id="savePatternBtn" class="primary">Save as pattern</button>
+        <button id="cancelEditBtn" class="warn" style="display:none">Cancel edit</button>
+      </div>
+      <div class="stat" id="markStat" style="margin-top:6px"></div>
+      <div class="stat" id="editingStat" style="margin-top:4px; color:#fc6"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Saved patterns (<span id="patCount">0</span>)</div>
+      <div class="pattern-list" id="patternList">
+        <div class="info">No patterns saved yet.</div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="clearAllBtn" class="danger">Clear all</button>
+        <button id="sortByFrameBtn" title="Re-sort patterns by ascending frame number">↕ Sort</button>
+        <button id="saveFolderBtn" class="primary" disabled title="Open a project folder first">Save to folder</button>
+        <button id="exportBtn">Show CSV</button>
+        <button id="downloadBtn">Download CSV</button>
+      </div>
+      <div class="stat" id="saveStat" style="margin-top:6px"></div>
+    </div>
+
+    <div class="panel" id="glyphViewerPanel">
+      <div class="panel-title">Glyph viewer</div>
+      <div class="row">
+        <label>ID <input type="number" id="glyphIdInput" min="1" value="1" style="width:64px"></label>
+        <button id="glyphViewBtn">View</button>
+        <button id="glyphPrevBtn" title="Previous glyph">‹</button>
+        <button id="glyphNextBtn" title="Next glyph">›</button>
+        <button id="glyphLoadAsMarksBtn" title="Put this glyph's cells on the video as marks for visual comparison">Load as marks</button>
+      </div>
+      <canvas id="glyphCanvas" width="270" height="270" style="background:#000; border:1px solid #444; border-radius:4px; margin-top:6px; display:block"></canvas>
+      <div class="stat" id="glyphInfo" style="margin-top:6px">No glyph loaded.</div>
+      <div class="stat" id="glyphOccs" style="margin-top:4px"></div>
+    </div>
+
+    <details>
+      <summary>Auto-detect threshold (advanced)</summary>
+      <div class="panel" style="margin-top:6px">
+        <div class="info" style="margin-bottom:8px">
+          When tagging, you can also auto-detect cells based on darkness in the cell ring.
+          Hover-detection works by sampling the area between the cell border and the dark hole.
+        </div>
+        <div class="row">
+          <label>Dark threshold <input type="range" id="darkThresh" min="40" max="120" value="80"></label>
+          <span id="darkThreshVal">80</span>
+        </div>
+        <div class="row">
+          <label>Min ring darkness % <input type="range" id="ringPct" min="20" max="80" value="50"></label>
+          <span id="ringPctVal">50</span>
+        </div>
+        <button id="autoDetectBtn">Auto-tag this frame</button>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div class="panel" id="csvPanel" style="display:none">
+  <div class="panel-title">CSV export</div>
+  <textarea class="csv-out" id="csvOut" readonly></textarea>
+</div>
+</div>
+
+<script>
+// ============================================================================
+// Elements
+// ============================================================================
+const fileDrop = document.getElementById('fileDrop');
+const fileInput = document.getElementById('fileInput');
+const browseBtn = document.getElementById('browseBtn');
+const mainLayout = document.getElementById('mainLayout');
+const loadPanel = document.getElementById('loadPanel');
+const video = document.getElementById('video');
+const overlay = document.getElementById('overlay');
+const clickLayer = document.getElementById('clickLayer');
+const stage = document.getElementById('stage');
+const playBtn = document.getElementById('playBtn');
+const scrubber = document.getElementById('scrubber');
+const timeDisp = document.getElementById('timeDisp');
+const speedSel = document.getElementById('speed');
+const prevFrameBtn = document.getElementById('prevFrameBtn');
+const nextFrameBtn = document.getElementById('nextFrameBtn');
+const gridN = document.getElementById('gridN');
+const editGridBtn = document.getElementById('editGridBtn');
+const gridDoneBtn = document.getElementById('gridDoneBtn');
+const gridResetBtn = document.getElementById('gridResetBtn');
+const gridDoneRow = document.getElementById('gridDoneRow');
+const gridHelp = document.getElementById('gridHelp');
+const gridStat = document.getElementById('gridStat');
+const clearMarksBtn = document.getElementById('clearMarksBtn');
+const savePatternBtn = document.getElementById('savePatternBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+const editingStat = document.getElementById('editingStat');
+const sortByFrameBtn = document.getElementById('sortByFrameBtn');
+const markStat = document.getElementById('markStat');
+const patternList = document.getElementById('patternList');
+const patCount = document.getElementById('patCount');
+const exportBtn = document.getElementById('exportBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const clearAllBtn = document.getElementById('clearAllBtn');
+const csvPanel = document.getElementById('csvPanel');
+const csvOut = document.getElementById('csvOut');
+const darkThresh = document.getElementById('darkThresh');
+const darkThreshVal = document.getElementById('darkThreshVal');
+const ringPct = document.getElementById('ringPct');
+const ringPctVal = document.getElementById('ringPctVal');
+const autoDetectBtn = document.getElementById('autoDetectBtn');
+
+// New feature elements
+const autoFitBtn = document.getElementById('autoFitBtn');
+const fitTwoCellsBtn = document.getElementById('fitTwoCellsBtn');
+const fitHelp = document.getElementById('fitHelp');
+const fitInstruction = document.getElementById('fitInstruction');
+const fitCancelBtn = document.getElementById('fitCancelBtn');
+const gridScale = document.getElementById('gridScale');
+const gridScaleVal = document.getElementById('gridScaleVal');
+const gridScaleReset = document.getElementById('gridScaleReset');
+const avgEnable = document.getElementById('avgEnable');
+const avgCount = document.getElementById('avgCount');
+const avgMode = document.getElementById('avgMode');
+const avgRefresh = document.getElementById('avgRefresh');
+const avgStat = document.getElementById('avgStat');
+const avgCanvas = document.getElementById('avgCanvas');
+
+// Glyph viewer elements
+const glyphIdInput = document.getElementById('glyphIdInput');
+const glyphViewBtn = document.getElementById('glyphViewBtn');
+const glyphPrevBtn = document.getElementById('glyphPrevBtn');
+const glyphNextBtn = document.getElementById('glyphNextBtn');
+const glyphLoadAsMarksBtn = document.getElementById('glyphLoadAsMarksBtn');
+const glyphCanvas = document.getElementById('glyphCanvas');
+const glyphInfo = document.getElementById('glyphInfo');
+const glyphOccs = document.getElementById('glyphOccs');
+
+// Folder linking elements
+const openFolderBtn = document.getElementById('openFolderBtn');
+const folderStat = document.getElementById('folderStat');
+const dictPill = document.getElementById('dictPill');
+const loadedFileStat = document.getElementById('loadedFileStat');
+const folderList = document.getElementById('folderList');
+const folderListWrap = document.getElementById('folderListWrap');
+const saveFolderBtn = document.getElementById('saveFolderBtn');
+const saveStat = document.getElementById('saveStat');
+
+// ============================================================================
+// Constants
+// ============================================================================
+const DICT_FILENAME = 'glyph_dictionary.csv';
+const WORK_SUBDIR = 'PatternCSVs';
+const NEAR_MATCH_DISTANCE = 2;
+
+// ============================================================================
+// State
+// ============================================================================
+const state = {
+  fileName: null,
+  fps: 30,
+  duration: 0,
+  videoW: 0,
+  videoH: 0,
+  gridCorners: null,
+  gridCornersBase: null,
+  gridScale: 1.0,
+  gridN: 9,
+  editingGrid: false,
+  draggingCorner: -1,
+  marks: new Set(),
+  patterns: [],
+  editingIndex: null,           // index of pattern currently loaded for editing, or null
+  avgEnabled: false,
+  // Two-point grid fit ("center then top-left")
+  fitMode: null,                // null | 'center' | 'topleft'
+  fitCenter: null,              // [x, y] in video coords, captured after first click
+  // Folder linking
+  folderHandle: null,
+  workDirHandle: null,
+  folderName: null,
+  folderFiles: [],
+  loadedCsvFile: null,
+  dictionary: [],
+  dictByFp: new Map(),
+};
+
+// ============================================================================
+// File loading
+// ============================================================================
+fileDrop.addEventListener('click', () => fileInput.click());
+browseBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('over'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('over'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('over');
+  if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) loadFile(e.target.files[0]);
+});
+
+function loadFile(file) {
+  state.fileName = file.name;
+  const url = URL.createObjectURL(file);
+  video.src = url;
+  video.addEventListener('loadedmetadata', onVideoReady, { once: true });
+  if (state.folderHandle) suggestLoadForVideo(file.name);
+}
+
+function onVideoReady() {
+  state.duration = video.duration;
+  state.videoW = video.videoWidth;
+  state.videoH = video.videoHeight;
+  state.fps = 30;
+
+  const sz = Math.min(state.videoW, state.videoH) * 0.6;
+  const cx = state.videoW / 2, cy = state.videoH / 2;
+  state.gridCornersBase = [
+    [cx - sz/2, cy - sz/2],
+    [cx + sz/2, cy - sz/2],
+    [cx + sz/2, cy + sz/2],
+    [cx - sz/2, cy + sz/2],
+  ];
+  state.gridScale = 1.0;
+  state.gridCorners = applyScaleToBase();
+
+  loadPanel.style.display = 'none';
+  mainLayout.style.display = '';
+
+  resizeOverlay();
+  redraw();
+  updateUI();
+}
+
+// ============================================================================
+// Resize
+// ============================================================================
+function resizeOverlay() {
+  const w = video.clientWidth;
+  const h = video.clientHeight;
+  for (const c of [overlay, clickLayer, avgCanvas]) {
+    c.width = state.videoW;
+    c.height = state.videoH;
+    c.style.width = w + 'px';
+    c.style.height = h + 'px';
+  }
+}
+
+window.addEventListener('resize', () => { resizeOverlay(); redraw(); });
+video.addEventListener('loadeddata', () => { resizeOverlay(); redraw(); });
+
+// ============================================================================
+// Playback
+// ============================================================================
+playBtn.addEventListener('click', togglePlay);
+function togglePlay() {
+  if (video.paused) video.play(); else video.pause();
+}
+video.addEventListener('play', () => { playBtn.textContent = '⏸'; });
+video.addEventListener('pause', () => { playBtn.textContent = '▶'; });
+
+speedSel.addEventListener('change', () => { video.playbackRate = parseFloat(speedSel.value); });
+
+video.addEventListener('timeupdate', updateUI);
+video.addEventListener('seeked', () => { updateUI(); redraw(); });
+
+scrubber.addEventListener('input', () => {
+  const t = (scrubber.value / 1000) * state.duration;
+  video.currentTime = t;
+});
+
+prevFrameBtn.addEventListener('click', () => stepFrame(-1));
+nextFrameBtn.addEventListener('click', () => stepFrame(1));
+
+function stepFrame(dir) {
+  video.pause();
+  video.currentTime = Math.max(0, Math.min(state.duration, video.currentTime + dir / state.fps));
+}
+
+function getFrame() {
+  return Math.round(video.currentTime * state.fps);
+}
+
+function updateUI() {
+  if (!state.duration) return;
+  const t = video.currentTime;
+  const f = getFrame();
+  const total = Math.round(state.duration * state.fps);
+  timeDisp.textContent = `${t.toFixed(3)} / ${state.duration.toFixed(3)}  f${f}/${total}`;
+  scrubber.value = (t / state.duration) * 1000;
+  gridStat.textContent = state.gridCorners
+    ? `${state.gridN}×${state.gridN} grid set${state.editingGrid ? ' (editing)' : ''}`
+    : 'no grid set';
+  markStat.innerHTML = state.marks.size
+    ? `<strong>${state.marks.size}</strong> cells marked`
+    : 'no cells marked';
+}
+
+// ============================================================================
+// Keyboard
+// ============================================================================
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (mainLayout.style.display === 'none') return;
+  if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  else if (e.key === ',') { e.preventDefault(); stepFrame(-1); }
+  else if (e.key === '.') { e.preventDefault(); stepFrame(1); }
+  else if (e.key === 'g' || e.key === 'G') { e.preventDefault(); toggleGridEdit(); }
+  else if (e.key === 's' || e.key === 'S') { e.preventDefault(); savePattern(); }
+  else if (e.key === 'Escape' && state.fitMode) { e.preventDefault(); cancelTwoPointFit(); }
+});
+
+// ============================================================================
+// Grid editing
+// ============================================================================
+gridN.addEventListener('change', () => {
+  state.gridN = Math.max(2, Math.min(20, parseInt(gridN.value) || 9));
+  gridN.value = state.gridN;
+  redraw();
+  updateUI();
+});
+
+editGridBtn.addEventListener('click', toggleGridEdit);
+gridDoneBtn.addEventListener('click', toggleGridEdit);
+
+function toggleGridEdit() {
+  state.editingGrid = !state.editingGrid;
+  editGridBtn.textContent = state.editingGrid ? 'Editing grid…' : 'Edit grid';
+  gridDoneRow.style.display = state.editingGrid ? '' : 'none';
+  gridHelp.style.display = state.editingGrid ? '' : 'none';
+  redraw();
+  updateUI();
+}
+
+gridResetBtn.addEventListener('click', () => {
+  const sz = Math.min(state.videoW, state.videoH) * 0.6;
+  const cx = state.videoW / 2, cy = state.videoH / 2;
+  state.gridCornersBase = [
+    [cx - sz/2, cy - sz/2],
+    [cx + sz/2, cy - sz/2],
+    [cx + sz/2, cy + sz/2],
+    [cx - sz/2, cy + sz/2],
+  ];
+  state.gridScale = 1.0;
+  gridScale.value = '1';
+  gridScaleVal.textContent = '1.00×';
+  state.gridCorners = applyScaleToBase();
+  redraw();
+});
+
+function cellQuad(r, c) {
+  const N = state.gridN;
+  function pt(u, v) {
+    const [TL, TR, BR, BL] = state.gridCorners;
+    const top    = [TL[0]*(1-u) + TR[0]*u, TL[1]*(1-u) + TR[1]*u];
+    const bottom = [BL[0]*(1-u) + BR[0]*u, BL[1]*(1-u) + BR[1]*u];
+    return [top[0]*(1-v) + bottom[0]*v, top[1]*(1-v) + bottom[1]*v];
+  }
+  const u0 = c / N, u1 = (c + 1) / N;
+  const v0 = r / N, v1 = (r + 1) / N;
+  return [pt(u0, v0), pt(u1, v0), pt(u1, v1), pt(u0, v1)];
+}
+
+function cellCenter(r, c) {
+  const N = state.gridN;
+  const [TL, TR, BR, BL] = state.gridCorners;
+  const u = (c + 0.5) / N, v = (r + 0.5) / N;
+  const top    = [TL[0]*(1-u) + TR[0]*u, TL[1]*(1-u) + TR[1]*u];
+  const bottom = [BL[0]*(1-u) + BR[0]*u, BL[1]*(1-u) + BR[1]*u];
+  return [top[0]*(1-v) + bottom[0]*v, top[1]*(1-v) + bottom[1]*v];
+}
+
+// ============================================================================
+// Drawing
+// ============================================================================
+function redraw() {
+  if (!state.gridCorners) return;
+  const ctx = overlay.getContext('2d');
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+  ctx.lineWidth = Math.max(1, state.videoW / 800);
+  const N = state.gridN;
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const quad = cellQuad(r, c);
+      const marked = state.marks.has(`${r},${c}`);
+      ctx.beginPath();
+      ctx.moveTo(quad[0][0], quad[0][1]);
+      for (let i = 1; i < 4; i++) ctx.lineTo(quad[i][0], quad[i][1]);
+      ctx.closePath();
+      if (marked) {
+        ctx.fillStyle = 'rgba(46, 204, 113, 0.45)';
+        ctx.fill();
+        ctx.strokeStyle = '#2ecc71';
+      } else {
+        ctx.strokeStyle = state.editingGrid ? 'rgba(255,255,255,0.35)' : 'rgba(76, 207, 255, 0.55)';
+      }
+      ctx.stroke();
+    }
+  }
+
+  if (state.editingGrid) {
+    const r = Math.max(8, state.videoW / 80);
+    ctx.fillStyle = '#e74c3c';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    for (const [x, y] of state.gridCorners) {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
+  // Two-point fit feedback: marker at captured center point
+  if (state.fitCenter) {
+    const [x, y] = state.fitCenter;
+    const r = Math.max(8, state.videoW / 80);
+    ctx.lineWidth = Math.max(2, state.videoW / 600);
+    ctx.strokeStyle = '#ffcc00';
+    ctx.fillStyle = 'rgba(255, 204, 0, 0.25)';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - r * 1.6, y); ctx.lineTo(x + r * 1.6, y);
+    ctx.moveTo(x, y - r * 1.6); ctx.lineTo(x, y + r * 1.6);
+    ctx.stroke();
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = `bold ${Math.max(11, state.videoW / 60)}px monospace`;
+    ctx.fillText('center (4,4)', x + r * 1.8, y - r * 0.4);
+  }
+}
+
+// ============================================================================
+// Mouse
+// ============================================================================
+function clientToVideo(ev) {
+  const rect = clickLayer.getBoundingClientRect();
+  const x = (ev.clientX - rect.left) * (state.videoW / rect.width);
+  const y = (ev.clientY - rect.top)  * (state.videoH / rect.height);
+  return [x, y];
+}
+
+clickLayer.addEventListener('mousedown', ev => {
+  if (!state.gridCorners) return;
+  const [x, y] = clientToVideo(ev);
+  if (state.editingGrid) {
+    const r = Math.max(8, state.videoW / 80) * 1.5;
+    let best = -1, bestD = Infinity;
+    for (let i = 0; i < 4; i++) {
+      const dx = state.gridCorners[i][0] - x;
+      const dy = state.gridCorners[i][1] - y;
+      const d = Math.hypot(dx, dy);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    if (bestD < r * 2) {
+      state.draggingCorner = best;
+      ev.preventDefault();
+    }
+  }
+});
+
+clickLayer.addEventListener('mousemove', ev => {
+  if (state.draggingCorner >= 0) {
+    const [x, y] = clientToVideo(ev);
+    state.gridCorners[state.draggingCorner] = [x, y];
+    syncBaseFromCurrent();
+    redraw();
+  }
+});
+
+window.addEventListener('mouseup', ev => {
+  if (state.draggingCorner >= 0) {
+    state.draggingCorner = -1;
+    return;
+  }
+  // Two-point grid fit takes priority
+  if (state.fitMode && ev.target === clickLayer) {
+    const pt = clientToVideo(ev);
+    if (state.fitMode === 'center') {
+      state.fitCenter = pt;
+      state.fitMode = 'topleft';
+      fitInstruction.textContent = 'Now click the TOP-LEFT cell (cell 0,0)…';
+      redraw();
+      return;
+    } else if (state.fitMode === 'topleft') {
+      applyTwoPointFit(state.fitCenter, pt);
+      return;
+    }
+  }
+  if (ev.target !== clickLayer || !state.gridCorners || state.editingGrid) return;
+  const [x, y] = clientToVideo(ev);
+  for (let r = 0; r < state.gridN; r++) {
+    for (let c = 0; c < state.gridN; c++) {
+      if (pointInQuad([x, y], cellQuad(r, c))) {
+        const k = `${r},${c}`;
+        if (state.marks.has(k)) state.marks.delete(k);
+        else state.marks.add(k);
+        redraw();
+        updateUI();
+        return;
+      }
+    }
+  }
+});
+
+function pointInQuad(p, quad) {
+  let inside = false;
+  for (let i = 0, j = quad.length - 1; i < quad.length; j = i++) {
+    const xi = quad[i][0], yi = quad[i][1];
+    const xj = quad[j][0], yj = quad[j][1];
+    const intersect = ((yi > p[1]) != (yj > p[1])) &&
+      (p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+// ============================================================================
+// Pattern saving (in-memory)
+// ============================================================================
+clearMarksBtn.addEventListener('click', () => {
+  state.marks.clear();
+  redraw();
+  updateUI();
+});
+
+savePatternBtn.addEventListener('click', savePattern);
+
+function savePattern() {
+  const f = getFrame();
+  const cells = [...state.marks].map(k => k.split(',').map(Number));
+  cells.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const entry = { frame: f, time: video.currentTime, cells };
+  if (state.editingIndex !== null && state.editingIndex < state.patterns.length) {
+    // Replace the pattern in place. After re-sort the index may shift, but
+    // we exit edit mode so that's fine.
+    state.patterns[state.editingIndex] = entry;
+    state.editingIndex = null;
+  } else {
+    state.patterns.push(entry);
+  }
+  state.patterns.sort((a, b) => a.frame - b.frame);
+  renderPatternList();
+  updateExport();
+  updateEditingUI();
+}
+
+cancelEditBtn.addEventListener('click', () => {
+  state.editingIndex = null;
+  state.marks.clear();
+  redraw();
+  updateUI();
+  renderPatternList();
+  updateEditingUI();
+});
+
+sortByFrameBtn.addEventListener('click', () => {
+  state.patterns.sort((a, b) => a.frame - b.frame);
+  // editingIndex points to a moved pattern after sort — exit edit mode rather
+  // than try to track it across the sort.
+  state.editingIndex = null;
+  renderPatternList();
+  updateExport();
+  updateEditingUI();
+});
+
+function updateEditingUI() {
+  if (state.editingIndex !== null && state.editingIndex < state.patterns.length) {
+    const p = state.patterns[state.editingIndex];
+    savePatternBtn.textContent = `Save changes to #${state.editingIndex + 1}`;
+    cancelEditBtn.style.display = '';
+    editingStat.innerHTML = `<strong>Editing pattern #${state.editingIndex + 1}</strong> (was f${p.frame}, ${p.time.toFixed(2)}s) — saving will replace it at the current video position`;
+  } else {
+    savePatternBtn.textContent = 'Save as pattern';
+    cancelEditBtn.style.display = 'none';
+    editingStat.textContent = '';
+  }
+}
+
+clearAllBtn.addEventListener('click', () => {
+  if (!confirm('Delete all saved patterns? (This only clears the in-memory list — files on disk are untouched.)')) return;
+  state.patterns = [];
+  state.editingIndex = null;
+  state.loadedCsvFile = null;
+  loadedFileStat.textContent = '';
+  renderPatternList();
+  updateExport();
+  renderFolderList();
+  updateEditingUI();
+});
+
+function renderPatternList() {
+  patCount.textContent = state.patterns.length;
+  if (state.patterns.length === 0) {
+    patternList.innerHTML = '<div class="info">No patterns saved yet.</div>';
+    return;
+  }
+  patternList.innerHTML = '';
+  state.patterns.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'pattern-row';
+    if (i === state.editingIndex) div.classList.add('current');
+    const cellStr = p.cells.length
+      ? p.cells.map(c => `(${c[0]},${c[1]})`).join(' ')
+      : '(empty)';
+    // Glyph badge: known dictionary id, near-match warning, or "new"
+    const fp = patternFingerprint(p);
+    const known = state.dictByFp.get(fp);
+    let badge;
+    if (known) {
+      badge = `<span class="badge" title="Known glyph #${known.id}">#${known.id}</span>`;
+    } else {
+      const near = findNearestGlyph(fp, NEAR_MATCH_DISTANCE);
+      if (near) {
+        const off = near.distance;
+        const cellWord = off === 1 ? 'cell' : 'cells';
+        badge = `<span class="badge near" data-snap="1" title="Near match — ${off} ${cellWord} differ from glyph #${near.entry.id} (first seen in ${near.entry.first_video} f${near.entry.first_frame}). Click to snap.">≈#${near.entry.id} (${off} off)</span>`;
+      } else {
+        badge = `<span class="badge new" title="New glyph — will be added to dictionary on save">new</span>`;
+      }
+    }
+    div.innerHTML = `
+      <span class="num">#${i + 1}</span>
+      <span class="ts">f${p.frame}</span>
+      ${badge}
+      <span class="cells">${p.cells.length} cells: ${cellStr}</span>
+      <span class="del" data-i="${i}" title="Delete">×</span>
+    `;
+    div.addEventListener('click', ev => {
+      if (ev.target.classList.contains('del')) {
+        state.patterns.splice(i, 1);
+        renderPatternList();
+        updateExport();
+        return;
+      }
+      if (ev.target.dataset && ev.target.dataset.snap) {
+        const near = findNearestGlyph(patternFingerprint(p), NEAR_MATCH_DISTANCE);
+        if (near && confirm(
+          `Snap pattern #${i + 1} to dictionary glyph #${near.entry.id}?\n\n` +
+          `Current: ${p.cells.length} cells\n` +
+          `Glyph #${near.entry.id}: ${near.entry.n_cells} cells (${near.distance} differ)\n` +
+          `First seen: ${near.entry.first_video} f${near.entry.first_frame}`
+        )) {
+          p.cells = cellsFromFp(near.entry.fp);
+          state.marks = new Set(p.cells.map(c => `${c[0]},${c[1]}`));
+          video.currentTime = p.time;
+          renderPatternList();
+          updateExport();
+          redraw();
+          updateUI();
+        }
+        return;
+      }
+      // Click row → enter edit mode for this pattern: jump to its frame,
+      // load its marks, and the next "Save" will REPLACE it instead of
+      // appending. Click "Cancel edit" or save to exit edit mode.
+      state.editingIndex = i;
+      video.currentTime = p.time;
+      state.marks = new Set(p.cells.map(c => `${c[0]},${c[1]}`));
+      redraw();
+      updateUI();
+      renderPatternList();
+      updateEditingUI();
+    });
+    patternList.appendChild(div);
+  });
+}
+
+// ============================================================================
+// CSV export
+// ============================================================================
+function buildCSV() {
+  const N = state.gridN;
+  const rows = [];
+  const cellHeaders = [];
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < N; c++)
+      cellHeaders.push(`r${r}c${c}`);
+  const header = ['pattern', 'frame', 'time_s', 'n_cells', 'cells', ...cellHeaders];
+  rows.push(header);
+  state.patterns.forEach((p, i) => {
+    const cellSet = new Set(p.cells.map(c => `${c[0]},${c[1]}`));
+    const flags = [];
+    for (let r = 0; r < N; r++)
+      for (let c = 0; c < N; c++)
+        flags.push(cellSet.has(`${r},${c}`) ? 1 : 0);
+    const cellStr = p.cells.map(c => `(${c[0]} ${c[1]})`).join(' ');
+    rows.push([i + 1, p.frame, p.time.toFixed(4), p.cells.length, cellStr, ...flags]);
+  });
+  return rows.map(r => r.map(v => {
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(',')).join('\n');
+}
+
+exportBtn.addEventListener('click', () => {
+  csvPanel.style.display = '';
+  csvOut.value = buildCSV();
+});
+
+downloadBtn.addEventListener('click', () => {
+  const csv = buildCSV();
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const base = (state.fileName || 'patterns').replace(/\.[^.]+$/, '');
+  a.download = `${base}_patterns.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+function updateExport() {
+  if (csvPanel.style.display !== 'none') {
+    csvOut.value = buildCSV();
+  }
+}
+
+// ============================================================================
+// Auto-detect
+// ============================================================================
+darkThresh.addEventListener('input', () => { darkThreshVal.textContent = darkThresh.value; });
+ringPct.addEventListener('input', () => { ringPctVal.textContent = ringPct.value; });
+
+autoDetectBtn.addEventListener('click', autoDetect);
+
+function autoDetect() {
+  if (!state.gridCorners) return;
+  const scratch = document.createElement('canvas');
+  scratch.width = state.videoW;
+  scratch.height = state.videoH;
+  const ctx = scratch.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  const imgData = ctx.getImageData(0, 0, state.videoW, state.videoH);
+  const px = imgData.data;
+  const get = (x, y) => {
+    if (x < 0 || y < 0 || x >= state.videoW || y >= state.videoH) return 255;
+    const i = ((y | 0) * state.videoW + (x | 0)) * 4;
+    return 0.299 * px[i] + 0.587 * px[i+1] + 0.114 * px[i+2];
+  };
+
+  state.marks.clear();
+  const tDark = parseFloat(darkThresh.value);
+  const tPct = parseFloat(ringPct.value) / 100;
+
+  const pitchX = Math.hypot(state.gridCorners[1][0] - state.gridCorners[0][0],
+                            state.gridCorners[1][1] - state.gridCorners[0][1]) / state.gridN;
+  const pitchY = Math.hypot(state.gridCorners[3][0] - state.gridCorners[0][0],
+                            state.gridCorners[3][1] - state.gridCorners[0][1]) / state.gridN;
+  const pitch = Math.min(pitchX, pitchY);
+
+  for (let r = 0; r < state.gridN; r++) {
+    for (let c = 0; c < state.gridN; c++) {
+      const [cx, cy] = cellCenter(r, c);
+      const inner = pitch * 0.30;
+      const outer = pitch * 0.45;
+      let total = 0, dark = 0;
+      const samples = 32;
+      for (let i = 0; i < samples; i++) {
+        const angle = (i / samples) * Math.PI * 2;
+        for (const radFrac of [0.6, 0.8, 1.0]) {
+          const rr = inner + (outer - inner) * radFrac;
+          const x = cx + Math.cos(angle) * rr;
+          const y = cy + Math.sin(angle) * rr;
+          const v = get(x, y);
+          total++;
+          if (v < tDark) dark++;
+        }
+      }
+      const frac = total ? dark / total : 0;
+      if (frac > tPct) {
+        state.marks.add(`${r},${c}`);
+      }
+    }
+  }
+  redraw();
+  updateUI();
+}
+
+// ============================================================================
+// Grid scaling
+// ============================================================================
+function corners_centroid(corners) {
+  let cx = 0, cy = 0;
+  for (const [x, y] of corners) { cx += x; cy += y; }
+  return [cx / corners.length, cy / corners.length];
+}
+
+function applyScaleToBase() {
+  if (!state.gridCornersBase) return null;
+  const [cx, cy] = corners_centroid(state.gridCornersBase);
+  const s = state.gridScale;
+  return state.gridCornersBase.map(([x, y]) =>
+    [cx + (x - cx) * s, cy + (y - cy) * s]
+  );
+}
+
+function syncBaseFromCurrent() {
+  if (!state.gridCorners) return;
+  const [cx, cy] = corners_centroid(state.gridCorners);
+  const s = state.gridScale || 1;
+  if (Math.abs(s) < 1e-6) return;
+  state.gridCornersBase = state.gridCorners.map(([x, y]) =>
+    [cx + (x - cx) / s, cy + (y - cy) / s]
+  );
+}
+
+gridScale.addEventListener('input', () => {
+  state.gridScale = parseFloat(gridScale.value);
+  gridScaleVal.textContent = state.gridScale.toFixed(2) + '×';
+  state.gridCorners = applyScaleToBase();
+  redraw();
+});
+
+gridScaleReset.addEventListener('click', () => {
+  state.gridScale = 1.0;
+  gridScale.value = '1';
+  gridScaleVal.textContent = '1.00×';
+  state.gridCorners = applyScaleToBase();
+  redraw();
+});
+
+// ============================================================================
+// Auto-fit grid to central diamond
+// ============================================================================
+autoFitBtn.addEventListener('click', autoFitGrid);
+
+function autoFitGrid() {
+  if (!state.videoW) return;
+  const scratch = document.createElement('canvas');
+  scratch.width = state.videoW;
+  scratch.height = state.videoH;
+  const ctx = scratch.getContext('2d');
+  if (state.avgEnabled && avgCanvas.width === state.videoW) {
+    ctx.drawImage(avgCanvas, 0, 0);
+  } else {
+    ctx.drawImage(video, 0, 0);
+  }
+  const imgData = ctx.getImageData(0, 0, state.videoW, state.videoH);
+  const px = imgData.data;
+  const W = state.videoW, H = state.videoH;
+
+  const lum = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      lum[y * W + x] = (0.299 * px[i] + 0.587 * px[i+1] + 0.114 * px[i+2]) | 0;
+    }
+  }
+
+  const hist = new Uint32Array(256);
+  for (let i = 0; i < lum.length; i++) hist[lum[i]]++;
+  let total = lum.length;
+  let sumAll = 0;
+  for (let t = 0; t < 256; t++) sumAll += t * hist[t];
+  let sumB = 0, wB = 0, maxVar = 0, threshold = 128;
+  for (let t = 0; t < 256; t++) {
+    wB += hist[t];
+    if (wB === 0) continue;
+    const wF = total - wB;
+    if (wF === 0) break;
+    sumB += t * hist[t];
+    const mB = sumB / wB;
+    const mF = (sumAll - sumB) / wF;
+    const between = wB * wF * (mB - mF) * (mB - mF);
+    if (between > maxVar) { maxVar = between; threshold = t; }
+  }
+  const bright = new Uint8Array(W * H);
+  for (let i = 0; i < lum.length; i++) bright[i] = lum[i] > threshold ? 1 : 0;
+
+  const cx = (W / 2) | 0, cy = (H / 2) | 0;
+  let seed = -1;
+  for (let radius = 0; radius < Math.min(W, H) / 2 && seed < 0; radius++) {
+    for (let dy = -radius; dy <= radius && seed < 0; dy++) {
+      for (let dx = -radius; dx <= radius && seed < 0; dx++) {
+        if (Math.abs(dx) !== radius && Math.abs(dy) !== radius && radius > 0) continue;
+        const x = cx + dx, y = cy + dy;
+        if (x < 0 || x >= W || y < 0 || y >= H) continue;
+        if (bright[y * W + x]) seed = y * W + x;
+      }
+    }
+  }
+  if (seed < 0) {
+    avgStat.textContent = 'Auto-fit: no bright pixels found near center.';
+    return;
+  }
+
+  const visited = new Uint8Array(W * H);
+  const queue = [seed];
+  visited[seed] = 1;
+  const points = [];
+  let qhead = 0;
+  while (qhead < queue.length && points.length < 200000) {
+    const idx = queue[qhead++];
+    const x = idx % W, y = (idx / W) | 0;
+    points.push([x, y]);
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+      const ni = ny * W + nx;
+      if (visited[ni] || !bright[ni]) continue;
+      visited[ni] = 1;
+      queue.push(ni);
+    }
+  }
+  if (points.length < 50) {
+    avgStat.textContent = `Auto-fit: connected bright region too small (${points.length}px).`;
+    return;
+  }
+
+  let sx = 0, sy = 0;
+  let xMin = W, xMax = 0, yMin = H, yMax = 0;
+  for (const [x, y] of points) {
+    sx += x; sy += y;
+    if (x < xMin) xMin = x; if (x > xMax) xMax = x;
+    if (y < yMin) yMin = y; if (y > yMax) yMax = y;
+  }
+  const centerX = sx / points.length;
+  const centerY = sy / points.length;
+
+  const bboxW = xMax - xMin + 1;
+  const bboxH = yMax - yMin + 1;
+  const cellPitch = Math.max(bboxW, bboxH) / 5;
+
+  const half = (state.gridN * cellPitch) / 2;
+  state.gridCornersBase = [
+    [centerX - half, centerY - half],
+    [centerX + half, centerY - half],
+    [centerX + half, centerY + half],
+    [centerX - half, centerY + half],
+  ];
+  state.gridScale = 1.0;
+  gridScale.value = '1';
+  gridScaleVal.textContent = '1.00×';
+  state.gridCorners = applyScaleToBase();
+  redraw();
+  avgStat.textContent = `Auto-fit: diamond at (${centerX.toFixed(0)},${centerY.toFixed(0)}), pitch ${cellPitch.toFixed(1)}px (${points.length} bright px).`;
+}
+
+// ============================================================================
+// Two-point grid fit (click center cell, then top-left cell)
+// ============================================================================
+fitTwoCellsBtn.addEventListener('click', startTwoPointFit);
+fitCancelBtn.addEventListener('click', cancelTwoPointFit);
+
+function startTwoPointFit() {
+  if (!state.videoW) return;
+  if (state.editingGrid) toggleGridEdit();
+  state.fitMode = 'center';
+  state.fitCenter = null;
+  fitHelp.style.display = '';
+  fitInstruction.textContent = 'Click the CENTER cell of the 9×9 grid (cell 4,4)…';
+  fitTwoCellsBtn.classList.add('warn');
+  redraw();
+}
+
+function cancelTwoPointFit() {
+  state.fitMode = null;
+  state.fitCenter = null;
+  fitHelp.style.display = 'none';
+  fitTwoCellsBtn.classList.remove('warn');
+  redraw();
+}
+
+function applyTwoPointFit(centerPt, topLeftPt) {
+  const N = state.gridN;
+  // Center of cell (4,4) - center of cell (0,0) = (4 * pitchX, 4 * pitchY) for N=9
+  const halfSpan = (N / 2) - 0.5;
+  const pitchX = (centerPt[0] - topLeftPt[0]) / halfSpan;
+  const pitchY = (centerPt[1] - topLeftPt[1]) / halfSpan;
+  if (Math.abs(pitchX) < 1 || Math.abs(pitchY) < 1) {
+    fitInstruction.innerHTML = '<span style="color:#f88">Those two clicks are too close together. Try again.</span>';
+    state.fitMode = 'center';
+    state.fitCenter = null;
+    return;
+  }
+  const ox = topLeftPt[0] - 0.5 * pitchX;
+  const oy = topLeftPt[1] - 0.5 * pitchY;
+  state.gridCornersBase = [
+    [ox,                 oy],
+    [ox + N * pitchX,    oy],
+    [ox + N * pitchX,    oy + N * pitchY],
+    [ox,                 oy + N * pitchY],
+  ];
+  state.gridScale = 1.0;
+  gridScale.value = '1';
+  gridScaleVal.textContent = '1.00×';
+  state.gridCorners = applyScaleToBase();
+  cancelTwoPointFit();
+  redraw();
+  avgStat.textContent = `Two-point fit: pitch ${pitchX.toFixed(1)}×${pitchY.toFixed(1)}px, origin (${ox.toFixed(0)},${oy.toFixed(0)}).`;
+}
+
+// ============================================================================
+// Frame averaging
+// ============================================================================
+let avgCapturing = false;
+avgEnable.addEventListener('change', () => {
+  state.avgEnabled = avgEnable.checked;
+  avgCanvas.style.display = state.avgEnabled ? '' : 'none';
+  if (state.avgEnabled) {
+    refreshAverage();
+  }
+});
+avgRefresh.addEventListener('click', refreshAverage);
+avgCount.addEventListener('change', () => { if (state.avgEnabled) refreshAverage(); });
+avgMode.addEventListener('change', () => { if (state.avgEnabled) refreshAverage(); });
+video.addEventListener('seeked', () => {
+  if (state.avgEnabled && !avgCapturing) refreshAverage();
+});
+
+async function refreshAverage() {
+  if (!state.videoW) return;
+  if (avgCapturing) return;
+  if (!video.paused) {
+    avgStat.textContent = 'Pause the video before averaging.';
+    return;
+  }
+  avgCapturing = true;
+  try {
+    const N = Math.max(1, Math.min(20, parseInt(avgCount.value) || 5));
+    const mode = avgMode.value;
+    const W = state.videoW, H = state.videoH;
+    const fps = state.fps;
+    const t0 = video.currentTime;
+
+    const scratch = document.createElement('canvas');
+    scratch.width = W; scratch.height = H;
+    const sctx = scratch.getContext('2d');
+
+    const accum = mode === 'mean' ? new Uint32Array(W * H * 3)
+                : mode === 'min'  ? new Uint8ClampedArray(W * H * 3).fill(255)
+                :                   new Uint8ClampedArray(W * H * 3);
+    let captured = 0;
+    avgStat.textContent = `Averaging… 0/${N}`;
+
+    for (let i = N - 1; i >= 0; i--) {
+      const tt = Math.max(0, Math.min(state.duration - 0.001, t0 - i / fps));
+      await new Promise(resolve => {
+        const onSeek = () => { video.removeEventListener('seeked', onSeek); resolve(); };
+        video.addEventListener('seeked', onSeek);
+        video.currentTime = tt;
+      });
+      sctx.drawImage(video, 0, 0, W, H);
+      const data = sctx.getImageData(0, 0, W, H).data;
+      if (mode === 'mean') {
+        for (let p = 0, q = 0; p < data.length; p += 4, q += 3) {
+          accum[q]   += data[p];
+          accum[q+1] += data[p+1];
+          accum[q+2] += data[p+2];
+        }
+      } else if (mode === 'min') {
+        for (let p = 0, q = 0; p < data.length; p += 4, q += 3) {
+          if (data[p]   < accum[q])   accum[q]   = data[p];
+          if (data[p+1] < accum[q+1]) accum[q+1] = data[p+1];
+          if (data[p+2] < accum[q+2]) accum[q+2] = data[p+2];
+        }
+      } else {
+        for (let p = 0, q = 0; p < data.length; p += 4, q += 3) {
+          if (data[p]   > accum[q])   accum[q]   = data[p];
+          if (data[p+1] > accum[q+1]) accum[q+1] = data[p+1];
+          if (data[p+2] > accum[q+2]) accum[q+2] = data[p+2];
+        }
+      }
+      captured++;
+      avgStat.textContent = `Averaging… ${captured}/${N}`;
+    }
+
+    const out = new ImageData(W, H);
+    const o = out.data;
+    if (mode === 'mean') {
+      for (let p = 0, q = 0; p < o.length; p += 4, q += 3) {
+        o[p]   = (accum[q]   / captured) | 0;
+        o[p+1] = (accum[q+1] / captured) | 0;
+        o[p+2] = (accum[q+2] / captured) | 0;
+        o[p+3] = 255;
+      }
+    } else {
+      for (let p = 0, q = 0; p < o.length; p += 4, q += 3) {
+        o[p]   = accum[q];
+        o[p+1] = accum[q+1];
+        o[p+2] = accum[q+2];
+        o[p+3] = 255;
+      }
+    }
+    const ctx = avgCanvas.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+    ctx.putImageData(out, 0, 0);
+
+    await new Promise(resolve => {
+      const onSeek = () => { video.removeEventListener('seeked', onSeek); resolve(); };
+      video.addEventListener('seeked', onSeek);
+      video.currentTime = t0;
+    });
+
+    avgStat.textContent = `Averaged ${captured} frames (${mode}). Refresh after seeking elsewhere.`;
+    redraw();
+  } finally {
+    avgCapturing = false;
+  }
+}
+
+// ============================================================================
+// Project folder linking (File System Access API)
+// ============================================================================
+const fsaSupported = 'showDirectoryPicker' in window;
+if (!fsaSupported) {
+  openFolderBtn.disabled = true;
+  folderStat.textContent = 'File System Access API not supported in this browser. Use Chrome or Edge.';
+}
+
+openFolderBtn.addEventListener('click', openProjectFolder);
+
+async function openProjectFolder() {
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    state.folderHandle = handle;
+    state.folderName = handle.name;
+    state.workDirHandle = await handle.getDirectoryHandle(WORK_SUBDIR, { create: true });
+    folderStat.innerHTML = `Connected: <strong>${handle.name}</strong> &nbsp;·&nbsp; saving to <code>${WORK_SUBDIR}/</code>`;
+    await refreshFolderListing();
+    await loadDictionary();
+    saveFolderBtn.disabled = false;
+    saveFolderBtn.title = '';
+    folderListWrap.style.display = '';
+    if (state.fileName) suggestLoadForVideo(state.fileName);
+    renderPatternList();
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      folderStat.textContent = 'Failed to open folder: ' + err.message;
+    }
+  }
+}
+
+async function refreshFolderListing() {
+  const files = [];
+  for await (const entry of state.folderHandle.values()) {
+    if (entry.kind === 'file' && /\.csv$/i.test(entry.name) && entry.name !== DICT_FILENAME) {
+      files.push({ display: entry.name, path: entry.name, dir: 'root' });
+    }
+  }
+  if (state.workDirHandle) {
+    for await (const entry of state.workDirHandle.values()) {
+      if (entry.kind === 'file' && /\.csv$/i.test(entry.name) && entry.name !== DICT_FILENAME) {
+        files.push({ display: `${WORK_SUBDIR}/${entry.name}`, path: entry.name, dir: 'work' });
+      }
+    }
+  }
+  files.sort((a, b) => a.display.localeCompare(b.display));
+  state.folderFiles = files;
+  renderFolderList();
+}
+
+function renderFolderList() {
+  if (!state.folderFiles.length) {
+    folderList.innerHTML = '<div class="info">No <code>*_patterns.csv</code> files found yet.</div>';
+    return;
+  }
+  folderList.innerHTML = '';
+  for (const f of state.folderFiles) {
+    const div = document.createElement('div');
+    div.className = 'pattern-row';
+    if (state.loadedCsvFile && state.loadedCsvFile.display === f.display) {
+      div.classList.add('current');
+    }
+    div.innerHTML = `<span class="num">📄</span><span class="cells">${f.display}</span>`;
+    div.addEventListener('click', () => loadPatternCSV(f));
+    folderList.appendChild(div);
+  }
+}
+
+async function getDirHandleFor(file) {
+  return file.dir === 'root' ? state.folderHandle : state.workDirHandle;
+}
+
+async function loadDictionary() {
+  state.dictionary = [];
+  state.dictByFp = new Map();
+  const tryDirs = [state.workDirHandle, state.folderHandle];
+  for (const dir of tryDirs) {
+    if (!dir) continue;
+    try {
+      const fh = await dir.getFileHandle(DICT_FILENAME);
+      const text = await (await fh.getFile()).text();
+      parseDictionary(text);
+      break;
+    } catch (err) {
+      // not in this dir — try next
+    }
+  }
+  updateDictUI();
+}
+
+function parseDictionary(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+  if (lines.length < 2) return;
+  const header = parseCSVLine(lines[0]);
+  const col = (n) => header.indexOf(n);
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    const fp = cols[col('fingerprint')];
+    if (!fp) continue;
+    const entry = {
+      id: parseInt(cols[col('glyph_id')]) || i,
+      fp,
+      n_cells: parseInt(cols[col('n_cells')]) || 0,
+      cells_str: cols[col('cells')] || '',
+      first_video: cols[col('first_video')] || '',
+      first_frame: parseInt(cols[col('first_frame')]) || 0,
+      first_time: parseFloat(cols[col('first_time_s')]) || 0,
+    };
+    state.dictionary.push(entry);
+    state.dictByFp.set(fp, entry);
+  }
+}
+
+function updateDictUI() {
+  const n = state.dictionary.length;
+  dictPill.textContent = `Dictionary: ${n} unique glyph${n === 1 ? '' : 's'}`;
+  dictPill.className = 'pill' + (n > 0 ? ' ok' : '');
+}
+
+async function loadPatternCSV(file) {
+  try {
+    const dir = await getDirHandleFor(file);
+    const fh = await dir.getFileHandle(file.path);
+    const text = await (await fh.getFile()).text();
+    const patterns = parsePatternCSV(text);
+    state.patterns = patterns;
+    state.editingIndex = null;
+    state.loadedCsvFile = file;
+    loadedFileStat.innerHTML = `Loaded: <strong>${file.display}</strong> (${patterns.length} patterns)`;
+    renderPatternList();
+    updateExport();
+    renderFolderList();
+    updateEditingUI();
+    saveStat.textContent = '';
+  } catch (err) {
+    saveStat.textContent = 'Load failed: ' + err.message;
+  }
+}
+
+function parseCSVLine(line) {
+  const out = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') inQ = false;
+      else cur += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+function parsePatternCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+  if (lines.length < 2) return [];
+  const header = parseCSVLine(lines[0]);
+  const idx = {
+    frame: header.indexOf('frame'),
+    time_s: header.indexOf('time_s'),
+    cells: header.indexOf('cells'),
+  };
+  const out = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    const cellsStr = idx.cells >= 0 ? (cols[idx.cells] || '') : '';
+    let cells;
+    if (cellsStr) {
+      cells = [...cellsStr.matchAll(/\((\d+)[ ,]+(\d+)\)/g)]
+        .map(m => [parseInt(m[1]), parseInt(m[2])]);
+    } else {
+      cells = [];
+      for (let j = 0; j < header.length; j++) {
+        const m = /^r(\d+)c(\d+)$/.exec(header[j]);
+        if (m && cols[j] === '1') cells.push([parseInt(m[1]), parseInt(m[2])]);
+      }
+    }
+    out.push({
+      frame: parseInt(cols[idx.frame]) || 0,
+      time: parseFloat(cols[idx.time_s]) || 0,
+      cells,
+    });
+  }
+  out.sort((a, b) => a.frame - b.frame);
+  return out;
+}
+
+// ============================================================================
+// Glyph fingerprint + dictionary lookups
+// ============================================================================
+function patternFingerprint(p) {
+  // Square-grid binary string. Cells outside the current grid are dropped.
+  const N = state.gridN;
+  const set = new Set(p.cells.map(c => `${c[0]},${c[1]}`));
+  let fp = '';
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < N; c++)
+      fp += set.has(`${r},${c}`) ? '1' : '0';
+  return fp;
+}
+
+function cellsFromFp(fp) {
+  // Inverse of patternFingerprint
+  const N = state.gridN;
+  const cells = [];
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < N; c++)
+      if (fp[r * N + c] === '1') cells.push([r, c]);
+  return cells;
+}
+
+function findNearestGlyph(fp, maxDistance = 2) {
+  // Hamming distance scan. Returns the closest dictionary entry within
+  // maxDistance, or null. Distance 0 (exact) is handled by dictByFp upstream;
+  // here we want 1 ≤ d ≤ maxDistance to surface near-misses.
+  let best = null;
+  let bestDist = Infinity;
+  for (const e of state.dictionary) {
+    if (e.fp.length !== fp.length) continue;
+    let d = 0;
+    for (let i = 0; i < fp.length; i++) {
+      if (fp[i] !== e.fp[i]) {
+        d++;
+        if (d > maxDistance) break;
+      }
+    }
+    if (d <= maxDistance && d < bestDist) {
+      bestDist = d;
+      best = e;
+      if (d === 1) break; // can't get closer than 1 (0 is exact, handled elsewhere)
+    }
+  }
+  return best ? { entry: best, distance: bestDist } : null;
+}
+
+// ============================================================================
+// Save back to folder + dictionary update
+// ============================================================================
+async function writeTextFile(dirHandle, name, text) {
+  const fh = await dirHandle.getFileHandle(name, { create: true });
+  const writable = await fh.createWritable();
+  await writable.write(text);
+  await writable.close();
+}
+
+saveFolderBtn.addEventListener('click', saveToFolder);
+
+async function saveToFolder() {
+  if (!state.folderHandle || !state.workDirHandle) {
+    saveStat.textContent = 'Open a project folder first.';
+    return;
+  }
+  const base = (state.fileName || 'patterns').replace(/\.[^.]+$/, '');
+  const filename = `${base}_patterns.csv`;
+  const csv = buildCSV();
+  try {
+    const targetDir = state.loadedCsvFile && state.loadedCsvFile.dir === 'root'
+      ? state.folderHandle
+      : state.workDirHandle;
+    const targetLabel = state.loadedCsvFile && state.loadedCsvFile.dir === 'root'
+      ? filename
+      : `${WORK_SUBDIR}/${filename}`;
+
+    await writeTextFile(targetDir, filename, csv);
+
+    let added = 0;
+    let nearMatches = 0;
+    for (const p of state.patterns) {
+      const fp = patternFingerprint(p);
+      if (!state.dictByFp.has(fp)) {
+        const near = findNearestGlyph(fp, NEAR_MATCH_DISTANCE);
+        if (near) nearMatches++;
+        const entry = {
+          id: state.dictionary.length + 1,
+          fp,
+          n_cells: p.cells.length,
+          cells_str: p.cells.map(c => `(${c[0]} ${c[1]})`).join(' '),
+          first_video: base,
+          first_frame: p.frame,
+          first_time: p.time,
+        };
+        state.dictionary.push(entry);
+        state.dictByFp.set(fp, entry);
+        added++;
+      }
+    }
+    if (added > 0) await writeDictionary();
+    updateDictUI();
+    state.loadedCsvFile = { display: targetLabel, path: filename, dir: targetDir === state.folderHandle ? 'root' : 'work' };
+    await refreshFolderListing();
+    renderFolderList();
+    renderPatternList();
+    const stamp = new Date().toLocaleTimeString();
+    const nearNote = nearMatches > 0
+      ? ` · <span style="color:#fc6">⚠ ${nearMatches} of those were within ${NEAR_MATCH_DISTANCE} cells of an existing glyph — check the badges</span>`
+      : '';
+    if (added > 0) {
+      saveStat.innerHTML = `<strong style="color:#3b7">✓</strong> Saved <strong>${targetLabel}</strong> at ${stamp} · ` +
+        `${state.patterns.length} patterns · <strong style="color:#6f6">+${added} new glyph${added === 1 ? '' : 's'}</strong> ` +
+        `(dictionary now ${state.dictionary.length})${nearNote}`;
+    } else {
+      saveStat.innerHTML = `<strong style="color:#3b7">✓</strong> Saved <strong>${targetLabel}</strong> at ${stamp} · ` +
+        `${state.patterns.length} patterns · no new glyphs (dictionary ${state.dictionary.length})`;
+    }
+  } catch (err) {
+    saveStat.textContent = 'Save failed: ' + err.message;
+  }
+}
+
+async function writeDictionary() {
+  const N = state.gridN;
+  const cellHeaders = [];
+  for (let r = 0; r < N; r++)
+    for (let c = 0; c < N; c++)
+      cellHeaders.push(`r${r}c${c}`);
+  const header = ['glyph_id', 'fingerprint', 'n_cells', 'cells', 'first_video', 'first_frame', 'first_time_s', ...cellHeaders];
+  const rows = [header];
+  for (const e of state.dictionary) {
+    const flags = (e.fp.length === N * N)
+      ? [...e.fp]
+      : [...Array(N * N)].map((_, i) => e.fp[i] || '0');
+    const time = (typeof e.first_time === 'number') ? e.first_time.toFixed(4) : (e.first_time || '');
+    rows.push([
+      e.id, e.fp, e.n_cells, e.cells_str,
+      e.first_video, e.first_frame, time,
+      ...flags,
+    ]);
+  }
+  const csv = rows.map(r => r.map(v => {
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(',')).join('\n');
+  await writeTextFile(state.workDirHandle, DICT_FILENAME, csv);
+}
+
+function suggestLoadForVideo(videoName) {
+  const base = videoName.replace(/\.[^.]+$/, '');
+  const target = `${base}_patterns.csv`;
+  const altTarget = `${base}.csv`;
+  const match = state.folderFiles.find(f => f.path === target)
+             || state.folderFiles.find(f => f.path === altTarget);
+  if (!match) {
+    loadedFileStat.innerHTML = `<span style="color:#fc6">No existing CSV for <strong>${base}</strong> — first save will create one.</span>`;
+    return;
+  }
+  if (state.patterns.length > 0) {
+    if (confirm(`Found existing scan "${match.display}". Load it? This will replace the ${state.patterns.length} unsaved pattern(s) currently in memory.`)) {
+      loadPatternCSV(match);
+    }
+  } else {
+    loadPatternCSV(match);
+  }
+}
+
+// ============================================================================
+// Glyph viewer — pull up any known glyph by ID to examine it
+// ============================================================================
+glyphViewBtn.addEventListener('click', () => viewGlyph(parseInt(glyphIdInput.value)));
+glyphPrevBtn.addEventListener('click', () => navigateGlyph(-1));
+glyphNextBtn.addEventListener('click', () => navigateGlyph(1));
+glyphLoadAsMarksBtn.addEventListener('click', loadGlyphAsMarks);
+glyphIdInput.addEventListener('change', () => viewGlyph(parseInt(glyphIdInput.value)));
+glyphIdInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); viewGlyph(parseInt(glyphIdInput.value)); }
+});
+
+function navigateGlyph(direction) {
+  if (!state.dictionary.length) return;
+  const ids = state.dictionary.map(e => e.id).sort((a, b) => a - b);
+  const current = parseInt(glyphIdInput.value) || ids[0];
+  const idx = ids.indexOf(current);
+  if (idx < 0) {
+    glyphIdInput.value = ids[0];
+  } else {
+    const next = ids[(idx + direction + ids.length) % ids.length];
+    glyphIdInput.value = next;
+  }
+  viewGlyph(parseInt(glyphIdInput.value));
+}
+
+function viewGlyph(id) {
+  const e = state.dictionary.find(x => x.id === id);
+  const ctx = glyphCanvas.getContext('2d');
+  ctx.clearRect(0, 0, glyphCanvas.width, glyphCanvas.height);
+  if (!e) {
+    glyphInfo.innerHTML = `<span style="color:#f88">Glyph #${id} not in dictionary</span>`;
+    glyphOccs.textContent = '';
+    return;
+  }
+  const N = state.gridN;
+  const W = glyphCanvas.width, H = glyphCanvas.height;
+  const cw = W / N, ch = H / N;
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      if (e.fp[r * N + c] === '1') {
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillRect(c * cw + 1, r * ch + 1, cw - 2, ch - 2);
+      }
+    }
+  }
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= N; i++) {
+    ctx.beginPath(); ctx.moveTo(i * cw, 0); ctx.lineTo(i * cw, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * ch); ctx.lineTo(W, i * ch); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(76, 207, 255, 0.25)';
+  ctx.beginPath();
+  ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H);
+  ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2);
+  ctx.stroke();
+
+  const time_str = (typeof e.first_time === 'number') ? e.first_time.toFixed(2) : (e.first_time || '0');
+  glyphInfo.innerHTML = `<strong>Glyph #${e.id}</strong> · ${e.n_cells} cells · first seen in <strong>${e.first_video}</strong> @ f${e.first_frame} (${time_str}s)`;
+
+  const occs = [];
+  for (let i = 0; i < state.patterns.length; i++) {
+    if (patternFingerprint(state.patterns[i]) === e.fp) {
+      occs.push({ idx: i + 1, frame: state.patterns[i].frame, time: state.patterns[i].time });
+    }
+  }
+  if (occs.length) {
+    glyphOccs.innerHTML = `In current scan: ${occs.map(o => `pattern #${o.idx} @ f${o.frame} (${o.time.toFixed(2)}s)`).join(' · ')}`;
+  } else if (state.patterns.length) {
+    glyphOccs.innerHTML = `<span style="color:#888">Not in the currently-loaded scan.</span>`;
+  } else {
+    glyphOccs.textContent = '';
+  }
+}
+
+function loadGlyphAsMarks() {
+  const id = parseInt(glyphIdInput.value);
+  const e = state.dictionary.find(x => x.id === id);
+  if (!e) return;
+  const N = state.gridN;
+  state.marks = new Set();
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      if (e.fp[r * N + c] === '1') state.marks.add(`${r},${c}`);
+    }
+  }
+  redraw();
+  updateUI();
+  markStat.innerHTML = `Loaded glyph <strong>#${e.id}</strong> as marks (${e.n_cells} cells)`;
+}
+
+// ============================================================================
+// Animation loop
+// ============================================================================
+function tick() {
+  if (!video.paused && !video.ended) {
+    redraw();
+    updateUI();
+  }
+  requestAnimationFrame(tick);
+}
+tick();
+
+updateUI();
+updateDictUI();
+updateEditingUI();
+</script>
+</body>
+</html>

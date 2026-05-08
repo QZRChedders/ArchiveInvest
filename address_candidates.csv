@@ -1,0 +1,17 @@
+scheme,group_id,glyphs,address_160bit,notes
+E6C2-N 3-glyph split,group 1,"#1,#2,#3",0x1694842008144480a040280801040004808ad0c0,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 2,"#4,#5,#6",0x0908020006122110000020080000018000189042,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 3,"#7,#8,#9",0x2162000014201013452110000004081000000081,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 4,"#10,#11,#12",0x00012002028a4110010004a00a61049080000240,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 5,"#13,#14,#15",0x2051128011431b040000a8428420234038a00010,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 6,"#16,#17,#18",0x211434040340040180132110080000409820c101,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 7,"#19,#20,#21",0x2800200018503010001000ca0000830c00880110,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 8,"#22,#23,#24",0x000802808c100800484990012000001010000010,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 9,"#25,#26,#27",0x20022218109068060000c002a402820400903c81,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 10,"#28,#29,#30",0x00101c0008808089000080042000204410800041,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 11,"#31,#32,#33",0x0000238000024100404010883194a94452010141,first 160 bits of 3 concatenated 55-bit values
+E6C2-N 3-glyph split,group 12,"#34,#35,#36",0x0098926020204c809346080800010a4000008b00,first 160 bits of 3 concatenated 55-bit values
+E6C2-N closing 6-glyph block,closing,"#31,#32,#33,#34,#35,#36",0x0000238000024100404010883194a94452010141,G×3 L×2 <36> — likely encodes the synthesis target
+E6C2-N singletons,uniques,"#2,#30,#36",0x40502014040082102208400020a90a4000008b00,the 3 glyphs unique to E6C2-N
+Cluster D as identifier,cluster_D,"#38,#42,#43,#44,#45,#46,#47,#48,#49,#50,#51",0x000001109110000150140030004a6018d1810610,the 11-glyph payload broadcast in 12 cycles — universal signature
+E6C2-11 singleton,E6C2-11_unique,#37,"(only 55 bits — single glyph, not enough for full address)",E6C2-11's only unique glyph

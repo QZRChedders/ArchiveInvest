@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Glyph Visualizer — Frontier Archive</title>
+<style>
+  :root {
+    --bg: #0c1018;
+    --panel: #141a26;
+    --ink: #e6ecf5;
+    --muted: #8794ad;
+    --accent: #62b1ff;
+    --diamond: #1a2030;       /* always-blank reference cells */
+    --off: #232c3d;            /* encodable, off */
+    --on: #ffd35c;             /* encodable, on (lit) */
+    --tl: #6cd0ff;
+    --tr: #ff9a5c;
+    --bl: #88e08a;
+    --br: #ff7d9c;
+    --center: #c89dff;
+    --special: #ffec80;
+    --conflict: #ff5050;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 18px 22px;
+    background: var(--bg); color: var(--ink);
+    font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+  .sub { color: var(--muted); margin-bottom: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; }
+
+  /* Detail panel */
+  .detail {
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 14px 16px;
+    flex: 0 0 auto;
+  }
+  .detail h2 { font-size: 14px; margin: 0 0 10px; font-weight: 600; color: var(--accent); }
+  .detail .meta { color: var(--muted); font-size: 11.5px; margin-bottom: 10px; }
+  .panes { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .pane { display: flex; flex-direction: column; gap: 6px; }
+  .pane .title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  /* Generic grid */
+  .grid {
+    display: grid;
+    gap: 2px;
+    padding: 6px;
+    background: #0a0e16;
+    border-radius: 6px;
+  }
+  .grid.large { --s: 30px; grid-template-columns: repeat(9, var(--s)); grid-auto-rows: var(--s); }
+  .grid.small { --s: 11px; grid-template-columns: repeat(9, var(--s)); grid-auto-rows: var(--s); }
+  .grid.compact { --s: 30px; grid-template-columns: repeat(7, var(--s)); grid-auto-rows: var(--s); }
+
+  .cell {
+    width: var(--s); height: var(--s);
+    border-radius: 3px;
+    background: var(--off);
+    position: relative;
+  }
+  .cell.diamond { background: var(--diamond); }
+  .cell.on { background: var(--on); box-shadow: 0 0 0 1px rgba(255,211,92,.4) inset; }
+  .cell.empty { background: transparent; }   /* used in compact view to leave gaps */
+
+  /* Region tinting (subtle on off cells, vivid on lit) */
+  .grid.regions .cell.region-tl.off    { background: #142a3a; }
+  .grid.regions .cell.region-tr.off    { background: #2e1f15; }
+  .grid.regions .cell.region-bl.off    { background: #152918; }
+  .grid.regions .cell.region-br.off    { background: #2a141d; }
+  .grid.regions .cell.region-c.off     { background: #211a30; }
+  .grid.regions .cell.region-special.off { background: #2e2a14; }
+  .grid.regions .cell.region-tl.on     { background: var(--tl); box-shadow: 0 0 0 1px rgba(108,208,255,.6) inset; }
+  .grid.regions .cell.region-tr.on     { background: var(--tr); }
+  .grid.regions .cell.region-bl.on     { background: var(--bl); }
+  .grid.regions .cell.region-br.on     { background: var(--br); }
+  .grid.regions .cell.region-c.on      { background: var(--center); }
+  .grid.regions .cell.region-special.on { background: var(--special); }
+  .grid.regions .cell.conflict.on      { background: var(--conflict); box-shadow: 0 0 0 2px #fff inset; }
+
+  /* Gallery */
+  .gallery-wrap {
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 14px;
+  }
+  .gallery-wrap h2 { font-size: 14px; margin: 0 0 10px; font-weight: 600; color: var(--accent); }
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+  }
+  .thumb {
+    background: #0a0e16;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transition: border-color .12s, transform .12s;
+  }
+  .thumb:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .thumb.selected { border-color: var(--on); }
+  .thumb .label { font-size: 11px; color: var(--muted); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+  .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 4px; }
+
+  .controls { margin: 6px 0 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .controls label { font-size: 12px; color: var(--muted); }
+  .controls input[type="search"] {
+    background: #0a0e16; border: 1px solid #2a3447; color: var(--ink);
+    padding: 5px 8px; border-radius: 4px; font: inherit; width: 180px;
+  }
+  .controls .pill {
+    background: #1a2030; border: 1px solid #2a3447; color: var(--ink);
+    padding: 4px 10px; border-radius: 999px; cursor: pointer; font-size: 11.5px;
+  }
+  .controls .pill.active { border-color: var(--accent); color: var(--accent); }
+
+  .err { color: #ff8a8a; }
+  code.k { background: #0a0e16; padding: 1px 5px; border-radius: 3px; color: var(--accent); }
+</style>
+</head>
+<body>
+  <h1>Glyph Visualizer</h1>
+  <div class="sub">
+    Renders the 9×9 glyphs from <code class="k">PatternCSVs/glyph_dictionary.csv</code>.
+    The hatched cells are the always-blank diamond outline (26 cells); the encodable region is 55 cells.
+    Compact view removes the diamond and shifts each corner triangle one step toward the center.
+  </div>
+
+  <div id="status" class="sub"></div>
+
+  <div class="row">
+    <div class="detail">
+      <h2 id="detailTitle">Glyph #1 — detail</h2>
+      <div class="meta" id="detailMeta"></div>
+      <div class="panes">
+        <div class="pane">
+          <div class="title">Original 9×9 (diamond shaded)</div>
+          <div id="origGrid"></div>
+        </div>
+        <div class="pane">
+          <div class="title">By region (color-coded)</div>
+          <div id="regionGrid"></div>
+        </div>
+        <div class="pane">
+          <div class="title">Compact (diamond removed, corners pulled in)</div>
+          <div id="compactGrid"></div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--tl)"></span>TL corner</span>
+        <span><span class="swatch" style="background:var(--tr)"></span>TR corner</span>
+        <span><span class="swatch" style="background:var(--bl)"></span>BL corner</span>
+        <span><span class="swatch" style="background:var(--br)"></span>BR corner</span>
+        <span><span class="swatch" style="background:var(--center)"></span>Center diamond</span>
+        <span><span class="swatch" style="background:var(--special)"></span>Special (2,6) / (5,2)</span>
+        <span><span class="swatch" style="background:var(--conflict)"></span>Compact-view collision</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="gallery-wrap">
+    <h2>Gallery</h2>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search id, video, or fingerprint…" />
+      <span class="pill" data-filter="all">All</span>
+      <span class="pill" data-filter="cluster-d">Cluster D (#37, #41–50)</span>
+      <span class="pill" data-filter="cluster-h">Cluster H (#1, #2)</span>
+      <span class="pill" data-filter="cluster-i">Cluster I (#4, #5)</span>
+      <span class="pill" data-filter="c4-twins">C4-twin pointers</span>
+      <span class="pill" data-filter="small">Small (≤6 cells)</span>
+      <span class="pill" data-filter="large">Large (≥13 cells)</span>
+      <span class="pill" data-filter="special">Has (2,6)/(5,2)</span>
+    </div>
+    <div id="gallery" class="gallery"></div>
+  </div>
+
+<script>
+/* ===========================================================
+   Constants & cell classification
+   =========================================================== */
+const ROWS = 9, COLS = 9;
+
+// Empirical always-blank cells (26) — derived from the dictionary.
+// Asymmetric: (2,6) and (5,2) are NOT in here (they're encodable C4-exclusive cells).
+const DIAMOND = new Set([
+  '0,4',
+  '1,3','1,4','1,5',
+  '2,2','2,3','2,5',
+  '3,1','3,2','3,6','3,7',
+  '4,0','4,1','4,7','4,8',
+  '5,1','5,6','5,7',
+  '6,2','6,3','6,5','6,6',
+  '7,3','7,4','7,5',
+  '8,4'
+]);
+
+// Region classification for encodable cells.
+//   TL: r+c <= 3              (10 cells)
+//   TR: c-r >= 5              (10 cells)
+//   BL: r-c >= 5              (10 cells)
+//   BR: r+c >= 13             (10 cells)
+//   C : |r-4| + |c-4| <= 2    (13 cells, central small diamond)
+//   special: (2,6) and (5,2)  (2 cells, the "torn" diamond cells)
+function regionOf(r, c) {
+  if (DIAMOND.has(`${r},${c}`)) return 'diamond';
+  if ((r === 2 && c === 6) || (r === 5 && c === 2)) return 'special';
+  if (r + c <= 3) return 'tl';
+  if (c - r >= 5) return 'tr';
+  if (r - c >= 5) return 'bl';
+  if (r + c >= 13) return 'br';
+  return 'c';
+}
+
+// Compact transform: shift each corner one step toward center.
+//   TL: (+1, +1)   TR: (+1, -1)   BL: (-1, +1)   BR: (-1, -1)
+//   center stays put. Special cells stay put (they're already adjacent to center).
+function compactTransform(r, c) {
+  const reg = regionOf(r, c);
+  switch (reg) {
+    case 'tl': return [r + 1, c + 1, reg];
+    case 'tr': return [r + 1, c - 1, reg];
+    case 'bl': return [r - 1, c + 1, reg];
+    case 'br': return [r - 1, c - 1, reg];
+    case 'c':
+    case 'special': return [r, c, reg];
+    default: return null;
+  }
+}
+
+/* ===========================================================
+   Data loading
+   =========================================================== */
+async function loadDictionary() {
+  // CSV lives a folder deep relative to this HTML file.
+  const candidates = [
+    'PatternCSVs/glyph_dictionary.csv',
+    './PatternCSVs/glyph_dictionary.csv',
+    '../PatternCSVs/glyph_dictionary.csv'
+  ];
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const text = await res.text();
+        return parseCSV(text);
+      }
+    } catch (e) { /* try next */ }
+  }
+  throw new Error('Could not load glyph_dictionary.csv. If the page is opened with file://, browsers may block fetch — run a local server: python -m http.server in the project folder.');
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.length);
+  const header = lines.shift().split(',');
+  return lines.map(line => {
+    // The 'cells' column has spaces and parens but no commas inside — simple split is OK.
+    const cols = line.split(',');
+    const o = {};
+    for (let i = 0; i < header.length; i++) o[header[i]] = cols[i];
+    o.n_cells = +o.n_cells;
+    o.first_frame = +o.first_frame;
+    o.first_time_s = +o.first_time_s;
+    // Build 9x9 grid
+    const grid = [];
+    for (let r = 0; r < 9; r++) {
+      const row = [];
+      for (let c = 0; c < 9; c++) row.push(+o[`r${r}c${c}`]);
+      grid.push(row);
+    }
+    o.grid = grid;
+    o.id = +o.glyph_id;
+    return o;
+  });
+}
+
+/* ===========================================================
+   Rendering helpers
+   =========================================================== */
+function makeCell(opts = {}) {
+  const d = document.createElement('div');
+  d.className = 'cell';
+  if (opts.diamond) d.classList.add('diamond');
+  if (opts.on) d.classList.add('on');
+  if (opts.empty) d.classList.add('empty');
+  if (opts.region) d.classList.add(`region-${opts.region}`);
+  if (opts.conflict) d.classList.add('conflict');
+  if (opts.title) d.title = opts.title;
+  return d;
+}
+
+function renderOriginal(container, grid, size = 'large') {
+  container.innerHTML = '';
+  container.className = `grid ${size}`;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const isDiamond = DIAMOND.has(`${r},${c}`);
+      const on = grid[r][c] === 1;
+      container.appendChild(makeCell({
+        diamond: isDiamond && !on,   // diamond cells should never be on, but be safe
+        on,
+        title: `(${r},${c})${on?' lit':''}${isDiamond?' diamond':''}`
+      }));
+    }
+  }
+}
+
+function renderRegions(container, grid, size = 'large') {
+  container.innerHTML = '';
+  container.className = `grid ${size} regions`;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const reg = regionOf(r, c);
+      const on = grid[r][c] === 1;
+      container.appendChild(makeCell({
+        diamond: reg === 'diamond' && !on,
+        on,
+        region: reg === 'diamond' ? null : reg,
+        title: `(${r},${c}) ${reg}`
+      }));
+    }
+  }
+}
+
+function renderCompact(container, grid, size = 'compact') {
+  // Build a 9x9 destination grid (still 9x9 — we keep the bounding box but
+  // every previously-blank diamond cell becomes an empty hole, and corners
+  // shift inward so triangles touch the central diamond.)
+  container.innerHTML = '';
+  container.className = `grid ${size} regions`;
+
+  // dest[r][c] = { region, on, conflict }
+  const dest = Array.from({length: 9}, () => Array.from({length: 9}, () => null));
+
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const t = compactTransform(r, c);
+      if (!t) continue; // diamond cell — drop it
+      const [nr, nc, reg] = t;
+      const on = grid[r][c] === 1;
+      const cur = dest[nr][nc];
+      if (cur === null) {
+        dest[nr][nc] = { region: reg, on, conflict: false, sources: [[r,c]] };
+      } else {
+        // Collision — only happens at (1,4),(4,1),(4,7),(7,4) when both
+        // adjacent corner edge cells are present.
+        cur.on = cur.on || on;
+        cur.conflict = true;
+        cur.sources.push([r,c]);
+      }
+    }
+  }
+
+  // Compact result lives entirely in rows 1..7, cols 1..7 — render only that 7×7.
+  for (let r = 1; r <= 7; r++) {
+    for (let c = 1; c <= 7; c++) {
+      const cell = dest[r][c];
+      if (cell === null) {
+        container.appendChild(makeCell({ empty: true, title: `(${r},${c}) hole` }));
+      } else {
+        container.appendChild(makeCell({
+          on: cell.on,
+          region: cell.region,
+          conflict: cell.conflict,
+          title: `(${r},${c}) ${cell.region}${cell.conflict?' COLLISION':''} ← ${cell.sources.map(([sr,sc])=>`(${sr},${sc})`).join(',')}`
+        }));
+      }
+    }
+  }
+}
+
+/* ===========================================================
+   App state
+   =========================================================== */
+let allGlyphs = [];
+let selectedId = 1;
+let activeFilter = 'all';
+let searchQuery = '';
+
+const C4_TWINS = new Set([113, 114, 130, 131, 133]);
+const CLUSTER_D = new Set([37, 41,42,43,44,45,46,47,48,49,50]);
+const CLUSTER_H = new Set([1, 2]);
+const CLUSTER_I = new Set([4, 5]);
+
+function passesFilter(g) {
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    const hay = `#${g.id} ${g.first_video} ${g.fingerprint}`.toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  switch (activeFilter) {
+    case 'all': return true;
+    case 'cluster-d': return CLUSTER_D.has(g.id);
+    case 'cluster-h': return CLUSTER_H.has(g.id);
+    case 'cluster-i': return CLUSTER_I.has(g.id);
+    case 'c4-twins': return C4_TWINS.has(g.id);
+    case 'small':    return g.n_cells <= 6;
+    case 'large':    return g.n_cells >= 13;
+    case 'special':  return g.grid[2][6] === 1 || g.grid[5][2] === 1;
+    default: return true;
+  }
+}
+
+function renderGallery() {
+  const wrap = document.getElementById('gallery');
+  wrap.innerHTML = '';
+  const list = allGlyphs.filter(passesFilter);
+  for (const g of list) {
+    const div = document.createElement('div');
+    div.className = 'thumb' + (g.id === selectedId ? ' selected' : '');
+    div.dataset.id = g.id;
+    const grid = document.createElement('div');
+    renderOriginal(grid, g.grid, 'small');
+    div.appendChild(grid);
+    const lbl = document.createElement('div');
+    lbl.className = 'label';
+    lbl.textContent = `#${g.id} · ${g.n_cells}c · ${g.first_video}`;
+    div.appendChild(lbl);
+    div.addEventListener('click', () => selectGlyph(g.id));
+    wrap.appendChild(div);
+  }
+  if (list.length === 0) wrap.innerHTML = '<div class="sub">No glyphs match.</div>';
+}
+
+function selectGlyph(id) {
+  selectedId = id;
+  const g = allGlyphs.find(x => x.id === id);
+  if (!g) return;
+  document.getElementById('detailTitle').textContent = `Glyph #${g.id} — detail`;
+  document.getElementById('detailMeta').textContent =
+    `cells=${g.n_cells} · first seen in ${g.first_video} @ frame ${g.first_frame} (${g.first_time_s.toFixed(2)}s) · fp=${g.fingerprint.slice(0,16)}…`;
+  renderOriginal(document.getElementById('origGrid'), g.grid, 'large');
+  renderRegions(document.getElementById('regionGrid'), g.grid, 'large');
+  renderCompact(document.getElementById('compactGrid'), g.grid, 'compact');
+  // Refresh selection ring in gallery without rebuilding everything
+  for (const el of document.querySelectorAll('.thumb')) {
+    el.classList.toggle('selected', +el.dataset.id === id);
+  }
+}
+
+/* ===========================================================
+   Boot
+   =========================================================== */
+(async () => {
+  const status = document.getElementById('status');
+  try {
+    status.textContent = 'Loading dictionary…';
+    allGlyphs = await loadDictionary();
+    status.textContent = `${allGlyphs.length} glyphs loaded.`;
+    renderGallery();
+    selectGlyph(1);
+  } catch (e) {
+    status.innerHTML = `<span class="err">${e.message}</span>`;
+  }
+
+  document.getElementById('search').addEventListener('input', e => {
+    searchQuery = e.target.value;
+    renderGallery();
+  });
+  for (const pill of document.querySelectorAll('.pill')) {
+    pill.addEventListener('click', () => {
+      activeFilter = pill.dataset.filter;
+      for (const p of document.querySelectorAll('.pill')) p.classList.toggle('active', p === pill);
+      renderGallery();
+    });
+  }
+  document.querySelector('.pill[data-filter="all"]').classList.add('active');
+})();
+</script>
+</body>
+</html>

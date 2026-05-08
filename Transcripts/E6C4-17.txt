@@ -1,0 +1,12 @@
+[  0.00 -   3.00] ...
+[  3.00 -   7.00] Significance confirmed. Restoration viable.
+[  7.00 -  10.00] Initial requirement identified.
+[ 10.00 -  12.00] Sleep state between stars.
+[ 12.00 -  14.00] Zero T.
+[ 14.00 -  15.00] T defies a.
+[ 15.00 -  18.00] Scan protocols updated.
+[ 18.00 -  20.00] Last name locations resolvable.
+[ 20.00 -  22.00] Acquisition required.
+[ 22.00 -  24.00] Keep monitors.
+[ 24.00 -  26.00] Cycle persists.
+[ 26.00 -  28.00] I'll wake you up eternally.
