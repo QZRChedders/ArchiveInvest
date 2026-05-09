@@ -124,6 +124,152 @@
 
   .err { color: #ff8a8a; }
   code.k { background: #0a0e16; padding: 1px 5px; border-radius: 3px; color: var(--accent); }
+
+  /* ================= Broadcast Viewer ================= */
+  .broadcast-viewer-wrap {
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 14px;
+  }
+  .broadcast-viewer-wrap h2 {
+    font-size: 14px; margin: 0 0 6px; font-weight: 600; color: var(--accent);
+  }
+  .bv-help { color: var(--muted); font-size: 11.5px; margin-bottom: 10px; }
+
+  .grid.mini { --s: 5px; padding: 2px; grid-template-columns: repeat(9, var(--s)); grid-auto-rows: var(--s); gap: 1px; }
+
+  .bv-pane {
+    margin-bottom: 14px;
+    background: #0a0e16;
+    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid #1c2538;
+  }
+  .bv-pane:last-child { margin-bottom: 0; }
+  .bv-pane[data-slot="A"] { border-left: 3px solid var(--accent); }
+  .bv-pane[data-slot="B"] { border-left: 3px solid var(--special); }
+
+  .bv-header {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    margin-bottom: 10px; font-size: 12px;
+  }
+  .bv-slot-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); font-weight: 600;
+  }
+  .bv-pane[data-slot="A"] .bv-slot-label { color: var(--accent); }
+  .bv-pane[data-slot="B"] .bv-slot-label { color: var(--special); }
+  .bv-select {
+    background: #141a26; border: 1px solid #2a3447; color: var(--ink);
+    padding: 4px 8px; border-radius: 4px; font: inherit; min-width: 130px;
+  }
+  .bv-meta { color: var(--muted); font-size: 11.5px; }
+  .bv-step-nav {
+    display: flex; gap: 6px; align-items: center; margin-left: auto;
+  }
+  .bv-step-nav button {
+    background: #1a2030; border: 1px solid #2a3447; color: var(--ink);
+    padding: 2px 9px; border-radius: 4px; cursor: pointer; font: inherit;
+    line-height: 1.2;
+  }
+  .bv-step-nav button:hover { border-color: var(--accent); color: var(--accent); }
+  .bv-step-nav button:disabled { opacity: .4; cursor: not-allowed; }
+  .bv-step-readout {
+    font-size: 11.5px; color: var(--muted); min-width: 84px; text-align: center;
+  }
+  .bv-step-readout b { color: var(--ink); font-weight: 600; }
+
+  .bv-timeline-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 2px 6px;
+  }
+  .bv-timeline {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    gap: 4px;
+    padding: 2px 0;
+  }
+  .bv-step-cell {
+    grid-row: 1;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 2px;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    transition: border-color .1s, background .1s;
+    width: 64px;
+  }
+  .bv-step-cell:hover { border-color: rgba(98,177,255,.4); background: #131a28; }
+  .bv-step-cell.active { border-color: var(--on); background: rgba(255,211,92,.07); }
+  .bv-step-cell.selected { border-color: var(--accent); }
+  .bv-step-cell.dup .bv-step-id { color: #ffb27a; }
+  .bv-step-id {
+    font-size: 10.5px; color: var(--muted); font-family: ui-monospace, monospace;
+  }
+
+  .bv-phrase {
+    grid-row: 3;
+    border-radius: 4px;
+    padding: 3px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    color: #0a0e16;
+    cursor: help;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+    margin: 0 1px;
+  }
+  .bv-phrase.singleton {
+    background: #1a2030;
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 10px;
+    border: 1px dashed #2a3447;
+    padding: 2px 4px;
+  }
+  .bv-phrase.shared::after {
+    content: "↔";
+    margin-left: 5px;
+    font-weight: 700;
+    color: #0a0e16;
+    opacity: .65;
+  }
+
+  .bv-tip {
+    position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+    background: #0a0e16; border: 1px solid #2a3447; color: var(--ink);
+    padding: 6px 9px; border-radius: 5px;
+    font: 11.5px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    text-align: left; white-space: normal;
+    width: 240px; display: none; z-index: 20;
+    box-shadow: 0 4px 16px rgba(0,0,0,.5);
+  }
+  .bv-tip b { color: var(--accent); }
+  .bv-tip .tip-list {
+    margin: 4px 0 0; color: var(--muted); font-size: 11px;
+  }
+  .bv-tip .tip-list .here { color: var(--on); }
+  .bv-tip .tip-role { color: var(--muted); margin-top: 4px; font-style: italic; font-size: 10.5px; }
+  .bv-phrase:hover .bv-tip { display: block; }
+
+  .bv-empty {
+    padding: 14px; color: var(--muted); font-size: 12px; text-align: center;
+  }
+
+  .bv-options {
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+    font-size: 11.5px; color: var(--muted);
+    margin: 4px 0 10px;
+  }
+  .bv-options label { cursor: pointer; }
+  .bv-options input[type="checkbox"] { vertical-align: -1px; margin-right: 4px; }
 </style>
 </head>
 <body>
@@ -162,6 +308,52 @@
         <span><span class="swatch" style="background:var(--center)"></span>Center diamond</span>
         <span><span class="swatch" style="background:var(--special)"></span>Special (2,6) / (5,2)</span>
         <span><span class="swatch" style="background:var(--conflict)"></span>Compact-view collision</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="broadcast-viewer-wrap">
+    <h2>Broadcast Viewer</h2>
+    <div class="bv-help">
+      Step through broadcasts as glyph timelines. Each glyph shows its <code class="k">#id</code>;
+      groups of consecutive glyphs that match a tagged phrase get a colored bracket below the row.
+      Hover a phrase bracket to see where else it appears. Click any glyph thumbnail to open it
+      in the detail panel above.
+    </div>
+    <div class="bv-options">
+      <label><input type="checkbox" id="bvSync" /> Sync step index between A and B</label>
+      <label><input type="checkbox" id="bvHighlightShared" checked /> Highlight phrases shared between the two broadcasts</label>
+    </div>
+
+    <div class="bv-pane" data-slot="A">
+      <div class="bv-header">
+        <span class="bv-slot-label">Broadcast A</span>
+        <select class="bv-select" data-slot="A"></select>
+        <span class="bv-meta" data-slot="A"></span>
+        <span class="bv-step-nav" data-slot="A">
+          <button class="bv-prev" title="Previous glyph (←)">‹</button>
+          <span class="bv-step-readout">Glyph <b>–</b> / –</span>
+          <button class="bv-next" title="Next glyph (→)">›</button>
+        </span>
+      </div>
+      <div class="bv-timeline-scroll" data-slot="A">
+        <div class="bv-timeline" data-slot="A"></div>
+      </div>
+    </div>
+
+    <div class="bv-pane" data-slot="B">
+      <div class="bv-header">
+        <span class="bv-slot-label">Broadcast B</span>
+        <select class="bv-select" data-slot="B"></select>
+        <span class="bv-meta" data-slot="B"></span>
+        <span class="bv-step-nav" data-slot="B">
+          <button class="bv-prev" title="Previous glyph">‹</button>
+          <span class="bv-step-readout">Glyph <b>–</b> / –</span>
+          <button class="bv-next" title="Next glyph">›</button>
+        </span>
+      </div>
+      <div class="bv-timeline-scroll" data-slot="B">
+        <div class="bv-timeline" data-slot="B"></div>
       </div>
     </div>
   </div>
@@ -377,12 +569,144 @@ function renderCompact(container, grid, size = 'compact') {
 }
 
 /* ===========================================================
+   Broadcast / phrase loading
+   =========================================================== */
+async function tryFetch(urls) {
+  for (const u of urls) {
+    try {
+      const r = await fetch(u);
+      if (r.ok) return await r.text();
+    } catch (e) { /* try next */ }
+  }
+  throw new Error(`Could not fetch any of: ${urls.join(', ')}`);
+}
+
+// Robust CSV line parser (handles quoted fields containing commas)
+function parseCSVLine(line) {
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      out.push(cur); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+function parseCSVText(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.length);
+  const header = parseCSVLine(lines.shift());
+  return lines.map(line => {
+    const cols = parseCSVLine(line);
+    const o = {};
+    header.forEach((h, i) => o[h] = (cols[i] !== undefined ? cols[i] : ''));
+    return o;
+  });
+}
+
+async function loadBroadcasts() {
+  const text = await tryFetch(['broadcasts.csv', './broadcasts.csv', '../broadcasts.csv']);
+  return parseCSVText(text).map(r => ({
+    broadcast: r.broadcast,
+    track: r.track,
+    n_glyphs: +r.n_glyphs,
+    duration_s: +r.duration_s,
+    phrase_sequence: r.phrase_sequence,
+    raw_glyph_ids: r.raw_glyph_ids,
+  }));
+}
+
+async function loadPhrases() {
+  const text = await tryFetch(['phrases.csv', './phrases.csv', '../phrases.csv']);
+  const rows = parseCSVText(text);
+  const map = {};
+  for (const r of rows) {
+    map[r.phrase] = {
+      letter: r.phrase,
+      n_glyphs: +r.n_glyphs,
+      glyph_ids: r.glyph_ids.split(',').map(s => +s.trim()).filter(n => !isNaN(n)),
+      n_broadcasts: +r.n_broadcasts,
+      broadcasts: r.broadcasts.split(',').map(s => s.trim()).filter(Boolean),
+      role: r.role || ''
+    };
+  }
+  return map;
+}
+
+/* Parse phrase_sequence into spans aligned to raw_glyph_ids.
+   Tokens:
+     LETTER         → 1 glyph from phrase LETTER
+     LETTER×N       → N glyphs from phrase LETTER
+     <ID>           → 1 singleton glyph (shown as the literal id)
+*/
+function parsePhraseSequence(phraseSeq, rawIdsStr) {
+  const tokens = phraseSeq.trim().split(/\s+/).filter(Boolean);
+  const ids = rawIdsStr.split(/\s+/).filter(Boolean).map(s => +s.replace(/^#/, ''));
+  const spans = [];
+  let pos = 0;
+  for (const tok of tokens) {
+    if (tok.startsWith('<') && tok.endsWith('>')) {
+      const litId = +tok.slice(1, -1);
+      spans.push({
+        kind: 'singleton',
+        startIdx: pos, endIdx: pos,
+        glyphIds: [ids[pos] !== undefined ? ids[pos] : litId],
+        label: `#${litId}`
+      });
+      pos++;
+    } else {
+      const m = tok.match(/^([A-Z])(?:×(\d+))?$/);
+      if (m) {
+        const letter = m[1];
+        const count = m[2] ? +m[2] : 1;
+        spans.push({
+          kind: 'phrase',
+          letter,
+          startIdx: pos, endIdx: pos + count - 1,
+          glyphIds: ids.slice(pos, pos + count),
+          label: count > 1 ? `${letter}×${count}` : letter
+        });
+        pos += count;
+      } else {
+        // unknown token — skip a single position to stay aligned
+        spans.push({ kind: 'singleton', startIdx: pos, endIdx: pos, glyphIds: [ids[pos]], label: '?' });
+        pos++;
+      }
+    }
+  }
+  return { spans, ids };
+}
+
+// Color per phrase letter (A–L)
+const PHRASE_COLORS = {
+  A: '#ef4444', B: '#f59e0b', C: '#eab308', D: '#22c55e',
+  E: '#06b6d4', F: '#3b82f6', G: '#a855f7', H: '#ec4899',
+  I: '#84cc16', J: '#14b8a6', K: '#fb923c', L: '#94a3b8'
+};
+
+/* ===========================================================
    App state
    =========================================================== */
 let allGlyphs = [];
+let allBroadcasts = [];
+let phraseMap = {};
+let glyphIndex = new Map();    // glyphId -> glyph row
+let glyphToBroadcasts = new Map(); // glyphId -> Set(broadcastName)
 let selectedId = 1;
 let activeFilter = 'all';
 let searchQuery = '';
+let bvSelected = { A: null, B: null };  // current broadcast name in each slot
+let bvActiveStep = { A: 0, B: 0 };       // current glyph index in each slot
+let bvSync = false;
+let bvHighlightShared = true;
 
 const C4_TWINS = new Set([113, 114, 130, 131, 133]);
 const CLUSTER_D = new Set([37, 41,42,43,44,45,46,47,48,49,50]);
@@ -446,6 +770,278 @@ function selectGlyph(id) {
 }
 
 /* ===========================================================
+   Broadcast Viewer rendering
+   =========================================================== */
+function buildGlyphIndex() {
+  glyphIndex.clear();
+  for (const g of allGlyphs) glyphIndex.set(g.id, g);
+}
+
+function buildGlyphToBroadcasts() {
+  glyphToBroadcasts.clear();
+  for (const b of allBroadcasts) {
+    const ids = b.raw_glyph_ids.split(/\s+/).filter(Boolean).map(s => +s.replace(/^#/, ''));
+    for (const id of ids) {
+      if (!glyphToBroadcasts.has(id)) glyphToBroadcasts.set(id, new Set());
+      glyphToBroadcasts.get(id).add(b.broadcast);
+    }
+  }
+}
+
+function populateBroadcastSelectors() {
+  for (const slot of ['A', 'B']) {
+    const sel = document.querySelector(`.bv-select[data-slot="${slot}"]`);
+    sel.innerHTML = '';
+    for (const b of allBroadcasts) {
+      const opt = document.createElement('option');
+      opt.value = b.broadcast;
+      opt.textContent = `${b.broadcast} (${b.track}, ${b.n_glyphs}g)`;
+      sel.appendChild(opt);
+    }
+  }
+  // Sensible defaults: first two broadcasts (E6C2-N and E6C2-11)
+  bvSelected.A = allBroadcasts[0]?.broadcast || null;
+  bvSelected.B = allBroadcasts[1]?.broadcast || allBroadcasts[0]?.broadcast || null;
+  document.querySelector(`.bv-select[data-slot="A"]`).value = bvSelected.A || '';
+  document.querySelector(`.bv-select[data-slot="B"]`).value = bvSelected.B || '';
+}
+
+function getBroadcast(name) { return allBroadcasts.find(b => b.broadcast === name); }
+
+function renderBroadcastPane(slot) {
+  const name = bvSelected[slot];
+  const tl = document.querySelector(`.bv-timeline[data-slot="${slot}"]`);
+  const meta = document.querySelector(`.bv-meta[data-slot="${slot}"]`);
+  if (!name || !getBroadcast(name)) {
+    tl.innerHTML = '<div class="bv-empty">No broadcast selected.</div>';
+    tl.style.gridTemplateColumns = '';
+    meta.textContent = '';
+    updateStepReadout(slot);
+    return;
+  }
+  const b = getBroadcast(name);
+  const { spans, ids } = parsePhraseSequence(b.phrase_sequence, b.raw_glyph_ids);
+
+  meta.textContent = `${b.track} · ${ids.length} glyphs · ${b.duration_s.toFixed(2)}s`;
+
+  // Determine which phrase letters appear in the OTHER slot's broadcast.
+  const otherSlot = slot === 'A' ? 'B' : 'A';
+  const otherName = bvSelected[otherSlot];
+  let otherLetters = new Set();
+  if (bvHighlightShared && otherName && otherName !== name) {
+    const ob = getBroadcast(otherName);
+    if (ob) {
+      const otherSpans = parsePhraseSequence(ob.phrase_sequence, ob.raw_glyph_ids).spans;
+      for (const s of otherSpans) if (s.kind === 'phrase') otherLetters.add(s.letter);
+    }
+  }
+
+  tl.innerHTML = '';
+  tl.style.gridTemplateColumns = `repeat(${ids.length}, 64px)`;
+
+  // Row 1: each glyph as a clickable thumbnail with #id label
+  ids.forEach((gid, idx) => {
+    const cell = document.createElement('div');
+    cell.className = 'bv-step-cell';
+    cell.style.gridColumn = `${idx + 1}`;
+    cell.dataset.idx = idx;
+    cell.dataset.gid = gid;
+    if (idx === bvActiveStep[slot]) cell.classList.add('active');
+    if (gid === selectedId) cell.classList.add('selected');
+
+    // mark duplicate (same id appears earlier in sequence)
+    const isDup = ids.indexOf(gid) !== idx;
+    if (isDup) cell.classList.add('dup');
+
+    const thumbWrap = document.createElement('div');
+    const g = glyphIndex.get(gid);
+    if (g) {
+      renderOriginal(thumbWrap, g.grid, 'mini');
+    } else {
+      thumbWrap.className = 'grid mini';
+      thumbWrap.style.opacity = '.4';
+      thumbWrap.textContent = '?';
+    }
+    cell.appendChild(thumbWrap);
+
+    const idLabel = document.createElement('div');
+    idLabel.className = 'bv-step-id';
+    idLabel.textContent = `#${gid}`;
+    cell.appendChild(idLabel);
+
+    // hover title: glyph id + which broadcasts it appears in
+    const inBroadcasts = [...(glyphToBroadcasts.get(gid) || [])];
+    cell.title = `Glyph #${gid} · pos ${idx + 1}/${ids.length}\n` +
+                 `appears in ${inBroadcasts.length} broadcast(s): ${inBroadcasts.join(', ')}` +
+                 (isDup ? `\n(repeat — already seen at pos ${ids.indexOf(gid) + 1})` : '');
+
+    cell.addEventListener('click', () => {
+      bvActiveStep[slot] = idx;
+      if (bvSync) bvActiveStep[otherSlot] = idx;
+      selectGlyph(gid);
+      renderBroadcastPane(slot);
+      if (bvSync) renderBroadcastPane(otherSlot);
+      else updateStepReadout(slot);
+      scrollActiveIntoView(slot);
+    });
+
+    tl.appendChild(cell);
+  });
+
+  // Row 3: phrase brackets
+  for (const span of spans) {
+    const el = document.createElement('div');
+    el.className = 'bv-phrase';
+    el.style.gridColumn = `${span.startIdx + 1} / span ${span.endIdx - span.startIdx + 1}`;
+
+    if (span.kind === 'phrase') {
+      const ph = phraseMap[span.letter];
+      const color = PHRASE_COLORS[span.letter] || '#64748b';
+      el.style.background = color;
+      el.textContent = span.label;
+      if (otherLetters.has(span.letter)) el.classList.add('shared');
+
+      // Tooltip with where else this phrase appears
+      const tip = document.createElement('div');
+      tip.className = 'bv-tip';
+      const otherBroadcasts = ph ? ph.broadcasts.filter(x => x !== name) : [];
+      tip.innerHTML = `
+        <div><b>Phrase ${span.letter}</b> · ${ph ? ph.n_glyphs : '?'} glyphs
+          ${ph ? `(${ph.glyph_ids.map(i=>'#'+i).join(', ')})` : ''}</div>
+        <div class="tip-list">
+          Appears in <b>${ph ? ph.n_broadcasts : '?'}</b> broadcast${ph && ph.n_broadcasts === 1 ? '' : 's'}:<br/>
+          ${ph ? ph.broadcasts.map(bn =>
+              bn === name
+                ? `<span class="here">• ${bn} (this one)</span>`
+                : `• ${bn}`
+            ).join('<br/>') : ''}
+        </div>
+        ${ph && ph.role ? `<div class="tip-role">${ph.role}</div>` : ''}
+      `;
+      el.appendChild(tip);
+    } else {
+      // singleton
+      el.classList.add('singleton');
+      el.textContent = '·';
+      const gid = span.glyphIds[0];
+      const inBroadcasts = [...(glyphToBroadcasts.get(gid) || [])].filter(x => x !== name);
+      const tip = document.createElement('div');
+      tip.className = 'bv-tip';
+      tip.innerHTML = `
+        <div><b>Singleton</b> · glyph #${gid}</div>
+        <div class="tip-list">
+          ${inBroadcasts.length === 0
+            ? 'Unique to this broadcast.'
+            : `Also in ${inBroadcasts.length} other broadcast${inBroadcasts.length === 1 ? '' : 's'}:<br/>` +
+              inBroadcasts.map(b => `• ${b}`).join('<br/>')}
+        </div>
+      `;
+      el.appendChild(tip);
+    }
+    tl.appendChild(el);
+  }
+
+  updateStepReadout(slot);
+}
+
+function updateStepReadout(slot) {
+  const name = bvSelected[slot];
+  const readout = document.querySelector(`.bv-step-nav[data-slot="${slot}"] .bv-step-readout`);
+  const prevBtn = document.querySelector(`.bv-step-nav[data-slot="${slot}"] .bv-prev`);
+  const nextBtn = document.querySelector(`.bv-step-nav[data-slot="${slot}"] .bv-next`);
+  if (!name || !getBroadcast(name)) {
+    readout.innerHTML = `Glyph <b>–</b> / –`;
+    prevBtn.disabled = true; nextBtn.disabled = true;
+    return;
+  }
+  const total = getBroadcast(name).n_glyphs;
+  const step = bvActiveStep[slot];
+  readout.innerHTML = `Glyph <b>${step + 1}</b> / ${total}`;
+  prevBtn.disabled = step <= 0;
+  nextBtn.disabled = step >= total - 1;
+}
+
+function scrollActiveIntoView(slot) {
+  const wrap = document.querySelector(`.bv-timeline-scroll[data-slot="${slot}"]`);
+  const cell = wrap?.querySelector(`.bv-step-cell.active`);
+  if (cell && wrap) {
+    const cellRect = cell.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    if (cellRect.left < wrapRect.left + 20 || cellRect.right > wrapRect.right - 20) {
+      cell.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    }
+  }
+}
+
+function stepBy(slot, delta) {
+  const name = bvSelected[slot];
+  if (!name) return;
+  const total = getBroadcast(name).n_glyphs;
+  const next = Math.max(0, Math.min(total - 1, bvActiveStep[slot] + delta));
+  if (next === bvActiveStep[slot]) return;
+  bvActiveStep[slot] = next;
+  if (bvSync) {
+    const otherSlot = slot === 'A' ? 'B' : 'A';
+    const otherName = bvSelected[otherSlot];
+    if (otherName) {
+      const otherTotal = getBroadcast(otherName).n_glyphs;
+      bvActiveStep[otherSlot] = Math.max(0, Math.min(otherTotal - 1, next));
+    }
+  }
+  // Select the glyph at the new step into the detail panel
+  const ids = getBroadcast(name).raw_glyph_ids.split(/\s+/).map(s => +s.replace(/^#/, ''));
+  if (ids[next] != null) selectGlyph(ids[next]);
+  renderBroadcastPane(slot);
+  if (bvSync) renderBroadcastPane(slot === 'A' ? 'B' : 'A');
+  scrollActiveIntoView(slot);
+}
+
+function bindBroadcastViewer() {
+  for (const slot of ['A', 'B']) {
+    document.querySelector(`.bv-select[data-slot="${slot}"]`).addEventListener('change', e => {
+      bvSelected[slot] = e.target.value;
+      bvActiveStep[slot] = 0;
+      renderBroadcastPane(slot);
+      // Re-render the OTHER pane too so shared-phrase highlights update
+      renderBroadcastPane(slot === 'A' ? 'B' : 'A');
+    });
+    const nav = document.querySelector(`.bv-step-nav[data-slot="${slot}"]`);
+    nav.querySelector('.bv-prev').addEventListener('click', () => stepBy(slot, -1));
+    nav.querySelector('.bv-next').addEventListener('click', () => stepBy(slot, +1));
+  }
+
+  document.getElementById('bvSync').addEventListener('change', e => {
+    bvSync = e.target.checked;
+    if (bvSync) {
+      // align B's step to A's
+      const aTotal = bvSelected.A ? getBroadcast(bvSelected.A).n_glyphs : 0;
+      const bTotal = bvSelected.B ? getBroadcast(bvSelected.B).n_glyphs : 0;
+      bvActiveStep.B = Math.min(bvActiveStep.A, Math.max(0, bTotal - 1));
+      renderBroadcastPane('B');
+    }
+  });
+  document.getElementById('bvHighlightShared').addEventListener('change', e => {
+    bvHighlightShared = e.target.checked;
+    renderBroadcastPane('A');
+    renderBroadcastPane('B');
+  });
+
+  // Arrow key navigation: ←/→ steps the most-recently-clicked pane.
+  // We'll track focus by clicks on either pane; keys step that pane.
+  let lastSlot = 'A';
+  for (const slot of ['A', 'B']) {
+    document.querySelector(`.bv-pane[data-slot="${slot}"]`).addEventListener('mousedown', () => {
+      lastSlot = slot;
+    });
+  }
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowLeft')  { stepBy(lastSlot, -1); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { stepBy(lastSlot, +1); e.preventDefault(); }
+  });
+}
+
+/* ===========================================================
    Boot
    =========================================================== */
 (async () => {
@@ -453,11 +1049,26 @@ function selectGlyph(id) {
   try {
     status.textContent = 'Loading dictionary…';
     allGlyphs = await loadDictionary();
+    buildGlyphIndex();
     status.textContent = `${allGlyphs.length} glyphs loaded.`;
     renderGallery();
     selectGlyph(1);
   } catch (e) {
     status.innerHTML = `<span class="err">${e.message}</span>`;
+    return;
+  }
+
+  // Broadcast viewer (best-effort — if these CSVs are missing, the panel just stays empty)
+  try {
+    [allBroadcasts, phraseMap] = await Promise.all([loadBroadcasts(), loadPhrases()]);
+    buildGlyphToBroadcasts();
+    populateBroadcastSelectors();
+    bindBroadcastViewer();
+    renderBroadcastPane('A');
+    renderBroadcastPane('B');
+  } catch (e) {
+    const wrap = document.querySelector('.broadcast-viewer-wrap');
+    if (wrap) wrap.innerHTML += `<div class="err" style="margin-top:6px">Broadcast viewer disabled: ${e.message}</div>`;
   }
 
   document.getElementById('search').addEventListener('input', e => {

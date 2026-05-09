@@ -10,7 +10,6 @@ A working analysis of the **Frontier Archive** broadcasts in **EVE Frontier** (C
 
 EVE Frontier is a blockchain-based MMO. It originally ran on **Lattice's Redstone Garnet** testnet (Ethereum L2, EVM-compatible, chain ID 17069, OP Stack on Holesky). At the start of Cycle 5 (March 2026) it migrated to **Sui** (32-byte object IDs / 256-bit). Cycles ("jubilees" / "shear events") are canonical in-game resets. Era 6 spans cycles 2–5 in the data we have. Era 5 was a much earlier game state. **Cycle 4 (Eternal Forge) introduced "Memory" — a progression system that explicitly carries forward across resets.** The Frontier Archive is plausibly that Memory system's player-facing surface.
 
-The game uses Lattice's MUD framework — entities, tables, content-addressed worlds.
 
 ---
 
@@ -156,7 +155,7 @@ Recurring phrases that may map to clusters:
 - "keep monitors" / "cycle persists" — appears in `E6C4-13`, `E6C4-16`, `E6C4-V` (Sparse + Side intersection)
 - "deviation persists" — in `E6C4-13`, `E6C4-16`
 - "calamity marrow" — `E6C5-13`, `E6C5-N`
-- "synthesis" / "syncosis" — only cycle-2 broadcasts
+- "synthesis" — only cycle-2 broadcasts
 
 ---
 

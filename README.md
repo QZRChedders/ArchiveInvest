@@ -1,5 +1,37 @@
 # Frontier Archive — Data Structure README
 
+
+## NOTE TO USER
+
+If you have more videos that have appeared than listed in the "Broadcast Order.png" (Found in Misc folder), please send recordings (Snipper tool with video is fine!) to QZRChedders#1860 on Discord or raise an Issue on GitHub and I can include it in future versions as many videos seem to appear and disappear at random (And some are locked behind certain progress gates in-game it seems!)
+
+
+## The tagging tool: `grid_tagger.html`
+
+A self-contained HTML/JS app for tagging videos. Open in Chrome or Edge (it uses the File System Access API, which Firefox doesn't support).
+
+If the file picker fails on `file://` URLs, run `python -m http.server` from this folder and open `http://localhost:8000/grid_tagger.html`.
+
+**Workflow**:
+1. Click *Open project folder* and select `ArchiveInvest`. The tool authorizes the folder for the session and reads `glyph_dictionary.csv`.
+2. Drag a video onto the load panel. The tool auto-suggests the matching `_patterns.csv` if one exists.
+3. Position the 9×9 grid over the cells using *Auto-fit (diamond)* or *Fit by 2 cells* (click center cell, then top-left).
+    NOTE: The auto-fit feature is very unreliable and should be ignored., instead use the *Fit by 2 cells* feature, select the MIDDLE of the centre cell, then the MIDDLE of the top-left cell. Doing this accurately will make your life easier!
+4. Step through the video and click cells to mark glyph patterns. Click *Save as pattern* (or press `S`) at each glyph frame.
+5. Click *Save to folder* — writes `<broadcast>_patterns.csv` and updates `glyph_dictionary.csv` with any new glyphs.
+
+**Useful features**:
+- **Auto-Detect** - Under the advanced settings (Found beneath the Glyph Viewer), press "Auto-tag this frame" to automatically select cells it sees as darkened, configure the thresholds to tune it so it is only selecting dark cells
+    NOTE: The auto-tag struggles significantly with extreme edge cells and those under the diamond overlay (As part of the cell is occluded), ENSURE you check these every glyph for best results. (8,8) - Bottom Right - is a significant offender for being missed manually and by the auto-tag feature
+- **Glyph viewer** (sidebar) — type any glyph ID to see its pattern rendered. *Load as marks* puts it on the canvas for visual comparison against the current frame.
+- **Near-match badges** — saved patterns within Hamming distance ≤ 2 of an older glyph show `≈#42 (1 off)` in yellow. Click the badge to snap to the older glyph, OR ignore it (some near-matches are legitimate cycle-stamped variants — see PROJECT_KNOWLEDGE.md).
+- **Edit-in-place** — click any pattern row to load its marks for editing. *Save changes* replaces it; *Cancel edit* exits.
+- **Auto-sort by frame** — patterns always reorder to ascending frame after every save.
+
+**Browser session limitation**: the folder permission expires when you close the tab. You'll re-pick the folder once per browser session.
+
+
+
 This folder contains source videos, transcripts, and tagged glyph patterns for the **Frontier Archive** broadcasts in EVE Frontier. This README explains how the data is organized and how to read each file.
 
 For *findings, hypotheses, and analysis*, see [PROJECT_KNOWLEDGE.md](./PROJECT_KNOWLEDGE.md).
@@ -170,28 +202,7 @@ In `phrase_sequence`, capital letters are clusters (`B` = one B-cluster glyph, `
 
 Generated from `E6C2-N`'s 36 glyphs. Reads them as 3-glyph groups → 12 candidate Ethereum-format hex strings to test in Garnet block explorers. See PROJECT_KNOWLEDGE.md for the methodology and caveats.
 
----
 
-## The tagging tool: `grid_tagger.html`
-
-A self-contained HTML/JS app for tagging videos. Open in Chrome or Edge (it uses the File System Access API, which Firefox doesn't support).
-
-If the file picker fails on `file://` URLs, run `python -m http.server` from this folder and open `http://localhost:8000/grid_tagger.html`.
-
-**Workflow**:
-1. Click *Open project folder* and select `ArchiveInvest`. The tool authorizes the folder for the session and reads `glyph_dictionary.csv`.
-2. Drag a video onto the load panel. The tool auto-suggests the matching `_patterns.csv` if one exists.
-3. Position the 9×9 grid over the cells using *Auto-fit (diamond)* or *Fit by 2 cells* (click center cell, then top-left).
-4. Step through the video and click cells to mark glyph patterns. Click *Save as pattern* (or press `S`) at each glyph frame.
-5. Click *Save to folder* — writes `<broadcast>_patterns.csv` and updates `glyph_dictionary.csv` with any new glyphs.
-
-**Useful features**:
-- **Glyph viewer** (sidebar) — type any glyph ID to see its pattern rendered. *Load as marks* puts it on the canvas for visual comparison against the current frame.
-- **Near-match badges** — saved patterns within Hamming distance ≤ 2 of an older glyph show `≈#42 (1 off)` in yellow. Click the badge to snap to the older glyph, OR ignore it (some near-matches are legitimate cycle-stamped variants — see PROJECT_KNOWLEDGE.md).
-- **Edit-in-place** — click any pattern row to load its marks for editing. *Save changes* replaces it; *Cancel edit* exits.
-- **Auto-sort by frame** — patterns always reorder to ascending frame after every save.
-
-**Browser session limitation**: the folder permission expires when you close the tab. You'll re-pick the folder once per browser session.
 
 ---
 
